@@ -9,6 +9,7 @@ from search import filter_students, render_search_page
 from editor import build_empty_student, normalize_student_payload, render_editor_page
 from google_auth import build_google_auth_url, exchange_code_for_token, fetch_google_user_info
 from navbar import build_global_navbar
+from spreadsheet_sync import sync_spreadsheet_folder
 
 
 app = Flask(__name__)
@@ -174,6 +175,13 @@ def students():
     all_students, data_label, can_edit = students_for_role(role)
     query = (request.args.get("q") or "").strip()
     filtered = filter_students(all_students, query)
+    base_message = None if can_edit else "AppBuilder can view students using dummy data only."
+    sync_message = (request.args.get("sync_result") or "").strip()
+    if sync_message:
+        message = sync_message
+    else:
+        message = base_message
+
     return render_search_page(
         students=filtered,
         query=query,
@@ -181,9 +189,25 @@ def students():
         data_label=data_label,
         is_admin=(role == "ADMIN"),
         can_edit=can_edit,
-        message=None if can_edit else "AppBuilder can view students using dummy data only.",
+        message=message,
         global_navbar=current_global_navbar(),
     )
+
+
+@app.route("/admin/sync-spreadsheets", methods=["POST"])
+def admin_sync_spreadsheets():
+    if not login_required():
+        return redirect(url_for("index"))
+
+    role = current_role()
+    if role != "ADMIN":
+        return redirect(url_for("students", sync_result="Access denied: ADMIN only."))
+
+    sync_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ClientSS")
+    result = sync_spreadsheet_folder(sync_folder, backend)
+
+    summary = f"Sync complete: {result['imported']} imported, {result['skipped']} skipped."
+    return redirect(url_for("students", sync_result=summary))
 
 
 @app.route("/students/edit", methods=["GET", "POST"])
