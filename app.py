@@ -1,4 +1,7 @@
 import os
+import json
+import urllib.parse
+import urllib.request
 from flask import Flask, render_template_string, request, redirect, session, url_for
 from database import StudentBackend
 
@@ -7,6 +10,9 @@ app.secret_key = os.getenv("SECRET_KEY", "dev-secret-key")
 app.config["PREFERRED_URL_SCHEME"] = "https"
 
 backend = StudentBackend()
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "https://guidancecounsellorapp.onrender.com/auth/google/callback")
 
 HTML_TEMPLATE = """
 <!doctype html>
@@ -40,6 +46,9 @@ HTML_TEMPLATE = """
           <button type="submit">Login</button>
         </form>
         {% if message %}<div class="msg">{{ message }}</div>{% endif %}
+        {% if google_enabled %}
+          <div class="link"><a href="/auth/google/login">Sign in with Google</a></div>
+        {% endif %}
         <div class="link"><a href="/register">Create account</a></div>
       {% endif %}
     </div>
@@ -87,7 +96,7 @@ def current_role():
 def index():
     if session.get("user"):
         return redirect(url_for("dashboard"))
-    return render_template_string(HTML_TEMPLATE, message=None, role=None)
+    return render_template_string(HTML_TEMPLATE, message=None, role=None, google_enabled=bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET))
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -99,8 +108,74 @@ def login():
             session["user"] = username
             session["role"] = backend.get_user_role(username)
             return redirect(url_for("dashboard"))
-        return render_template_string(HTML_TEMPLATE, message="Invalid username or password", role=None)
+        return render_template_string(HTML_TEMPLATE, message="Invalid username or password", role=None, google_enabled=bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET))
     return redirect(url_for("index"))
+
+
+@app.route("/auth/google/login")
+def google_login():
+    if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+        return redirect(url_for("index"))
+
+    params = {
+        "client_id": GOOGLE_CLIENT_ID,
+        "redirect_uri": GOOGLE_REDIRECT_URI,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "access_type": "offline",
+        "prompt": "consent",
+    }
+    auth_url = "https://accounts.google.com/o/oauth2/v2/auth?" + urllib.parse.urlencode(params)
+    return redirect(auth_url)
+
+
+@app.route("/auth/google/callback")
+def google_callback():
+    code = request.args.get("code", "")
+    if not code:
+        return render_template_string(HTML_TEMPLATE, message="Google login was cancelled.", role=None, google_enabled=bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET))
+
+    data = urllib.parse.urlencode({
+        "code": code,
+        "client_id": GOOGLE_CLIENT_ID,
+        "client_secret": GOOGLE_CLIENT_SECRET,
+        "redirect_uri": GOOGLE_REDIRECT_URI,
+        "grant_type": "authorization_code",
+    }).encode("utf-8")
+
+    request_obj = urllib.request.Request(
+        "https://oauth2.googleapis.com/token",
+        data=data,
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        method="POST",
+    )
+
+    with urllib.request.urlopen(request_obj) as response:
+        token_data = json.load(response)
+
+    access_token = token_data.get("access_token")
+    if not access_token:
+        return render_template_string(HTML_TEMPLATE, message="Google login failed.", role=None, google_enabled=bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET))
+
+    user_info_request = urllib.request.Request(
+        "https://www.googleapis.com/oauth2/v2/userinfo",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    with urllib.request.urlopen(user_info_request) as response:
+        user_info = json.load(response)
+
+    email = (user_info.get("email") or "").strip()
+    if not email:
+        return render_template_string(HTML_TEMPLATE, message="Google login did not return an email address.", role=None, google_enabled=bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET))
+
+    if not backend.get_stored_user() or not backend.verify_user_login(email, "google-oauth"):
+        backend.register_user(email, "google-oauth")
+        backend.set_user_role(email, "Counsellor")
+    backend.set_google_login(email, user_info.get("name") or email)
+
+    session["user"] = email
+    session["role"] = backend.get_user_role(email)
+    return redirect(url_for("dashboard"))
 
 
 @app.route("/register", methods=["GET", "POST"])
