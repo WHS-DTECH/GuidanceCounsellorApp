@@ -6,6 +6,9 @@ import hashlib
 import secrets
 from cryptography.fernet import Fernet
 
+
+ADMIN_USERNAME = "vanessapringle@westlandhigh.school.nz"
+
 class StudentBackend:
     def __init__(self):
         # --- EXE PATH LOGIC ---
@@ -95,7 +98,7 @@ class StudentBackend:
         return self.get_stored_user() is not None
 
     def ensure_admin_account(self):
-        admin_username = "vanessapringle@westlandhigh.school.nz"
+        admin_username = ADMIN_USERNAME
         try:
             with sqlite3.connect(self.db_name) as conn:
                 cursor = conn.execute("SELECT username FROM users WHERE username = ?", (admin_username,))
@@ -144,6 +147,17 @@ class StudentBackend:
         except Exception as e:
             print(f"Error reading role: {e}")
         return "Counsellor"
+
+    def get_user_role_record(self, username):
+        try:
+            with sqlite3.connect(self.db_name) as conn:
+                cursor = conn.execute("SELECT role FROM user_roles WHERE username = ?", (username,))
+                row = cursor.fetchone()
+                if row:
+                    return self.normalize_role(row[0])
+        except Exception as e:
+            print(f"Error reading role record: {e}")
+        return None
 
     def list_user_roles(self):
         users = []
@@ -230,11 +244,18 @@ class StudentBackend:
 
     def set_google_login(self, username, display_name):
         try:
+            existing_role = self.get_user_role_record(username)
             with sqlite3.connect(self.db_name) as conn:
                 conn.execute(
                     "INSERT OR REPLACE INTO users (username, password_hash, salt) VALUES (?, ?, ?)",
                     (username, b"google", b"google")
                 )
-            self.set_user_role(username, "Counsellor")
+
+            if username.lower() == ADMIN_USERNAME.lower():
+                self.set_user_role(username, "ADMIN")
+            elif existing_role:
+                self.set_user_role(username, existing_role)
+            else:
+                self.set_user_role(username, "Counsellor")
         except Exception as e:
             print(f"Error storing Google login: {e}")

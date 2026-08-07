@@ -31,7 +31,8 @@ def current_role():
     user = current_user()
     if not user:
         return None
-    role = session.get("role") or backend.get_user_role(user)
+    role = backend.get_user_role(user)
+    session["role"] = role
     if role not in {"ADMIN", "Counsellor", "AppBuilder"}:
         return "Counsellor"
     return role
