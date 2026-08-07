@@ -25,6 +25,7 @@ EDITOR_TEMPLATE = """
     </style>
   </head>
   <body>
+    {{ global_navbar|safe }}
     <div class="wrap">
       <div class="card">
         <h1>{{ page_title }}</h1>
@@ -177,7 +178,7 @@ def normalize_student_payload(form_data, existing_student_id=""):
     }
 
 
-def render_editor_page(student, message=None):
+def render_editor_page(student, message=None, global_navbar=""):
     sessions_string = ", ".join(format_session_time(s) for s in student.get("sessions", []))
     page_title = "Edit Student Profile" if student.get("student_id") else "New Student Profile"
     return render_template_string(
@@ -187,4 +188,5 @@ def render_editor_page(student, message=None):
         sessions_string=sessions_string,
         age=calculate_age(student.get("dob", "")),
         page_title=page_title,
+    global_navbar=global_navbar,
     )

@@ -8,6 +8,7 @@ from login import render_login_page, render_register_page
 from search import filter_students, render_search_page
 from editor import build_empty_student, normalize_student_payload, render_editor_page
 from google_auth import build_google_auth_url, exchange_code_for_token, fetch_google_user_info
+from navbar import build_global_navbar
 
 
 app = Flask(__name__)
@@ -42,6 +43,11 @@ def login_required():
     return current_user() is not None
 
 
+def current_global_navbar():
+    role = current_role()
+    return build_global_navbar(role)
+
+
 def students_for_role(role):
     if role == "AppBuilder":
         return backend.get_dummy_students(), "dummy dataset", False
@@ -62,6 +68,7 @@ def index():
             user=current_user(),
             role=current_role(),
             google_enabled=bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET),
+            global_navbar=current_global_navbar(),
         )
     return render_login_page(google_enabled=bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET))
 
@@ -154,6 +161,7 @@ def dashboard():
         data_label=data_label,
         students=students,
     )
+    context["global_navbar"] = current_global_navbar()
     return render_template_string(DASHBOARD_WEB_TEMPLATE, **context)
 
 
@@ -174,6 +182,7 @@ def students():
         is_admin=(role == "ADMIN"),
         can_edit=can_edit,
         message=None if can_edit else "AppBuilder can view students using dummy data only.",
+        global_navbar=current_global_navbar(),
     )
 
 
@@ -192,6 +201,7 @@ def students_edit():
             is_admin=False,
             can_edit=False,
             message="AppBuilder does not have write access to live student data.",
+            global_navbar=current_global_navbar(),
         )
 
     if request.method == "POST":
@@ -210,10 +220,14 @@ def students_edit():
             return render_editor_page(
                 build_empty_student(requested_id),
                 message="Student not found. You can save to create a new record.",
+                global_navbar=current_global_navbar(),
             )
-        return render_editor_page(student)
+        return render_editor_page(student, global_navbar=current_global_navbar())
 
-    return render_editor_page(build_empty_student(f"ST-{int(time.time())}"))
+    return render_editor_page(
+        build_empty_student(f"ST-{int(time.time())}"),
+        global_navbar=current_global_navbar(),
+    )
 
 
 @app.route("/students/delete", methods=["POST"])
@@ -247,6 +261,7 @@ def infrastructure():
         <html>
           <head><meta charset="utf-8"><title>Infrastructure</title></head>
           <body style="font-family: Arial, sans-serif; margin: 24px;">
+                        {{ global_navbar|safe }}
             <h1>Infrastructure</h1>
             <p>Role: {{ role }}</p>
             <p>This view is restricted to {{ data_label }} for AppBuilder users.</p>
@@ -263,6 +278,7 @@ def infrastructure():
         role=role,
         data_label=data_label,
         students=students,
+        global_navbar=current_global_navbar(),
     )
 
 
@@ -278,12 +294,14 @@ def user_roles():
             <!doctype html>
             <html>
               <body>
+                                {{ global_navbar|safe }}
                 <h1>Access denied</h1>
                 <p>This page is restricted to administrators.</p>
                 <p><a href="/dashboard">Back to dashboard</a></p>
               </body>
             </html>
-            """
+                        """,
+                        global_navbar=current_global_navbar(),
         )
 
     message = None
@@ -302,6 +320,7 @@ def user_roles():
         <html>
           <head><meta charset="utf-8"><title>User Roles</title></head>
           <body style="font-family: Arial, sans-serif; margin: 24px;">
+                        {{ global_navbar|safe }}
             <h1>User Role Management</h1>
             <p><a href="/dashboard">Dashboard</a> | <a href="/students">Students</a> | <a href="/logout">Logout</a></p>
             {% if message %}<p><strong>{{ message }}</strong></p>{% endif %}
@@ -331,6 +350,7 @@ def user_roles():
         """,
         message=message,
         users=users,
+        global_navbar=current_global_navbar(),
     )
 
 

@@ -20,6 +20,7 @@ LOGIN_TEMPLATE = """
     </style>
   </head>
   <body>
+    {{ global_navbar|safe }}
     <div class="page">
       <h1>SEND-C</h1>
       {% if user %}
@@ -77,15 +78,16 @@ REGISTER_TEMPLATE = """
 """
 
 
-def render_login_page(message=None, user=None, role=None, google_enabled=False):
+def render_login_page(message=None, user=None, role=None, google_enabled=False, global_navbar=""):
     return render_template_string(
         LOGIN_TEMPLATE,
         message=message,
         user=user,
         role=role,
         google_enabled=google_enabled,
+    global_navbar=global_navbar,
     )
 
 
-def render_register_page(message=None):
-    return render_template_string(REGISTER_TEMPLATE, message=message)
+def render_register_page(message=None, global_navbar=""):
+  return render_template_string(REGISTER_TEMPLATE, message=message, global_navbar=global_navbar)

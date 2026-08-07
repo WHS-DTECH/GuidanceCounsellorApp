@@ -91,19 +91,14 @@ DASHBOARD_WEB_TEMPLATE = """
     </style>
   </head>
   <body>
+    {{ global_navbar|safe }}
     <div class="wrap">
       <div class="topbar">
         <div>
           <h1 class="title">Overview & Analytics</h1>
           <p class="meta">Welcome, {{ user }}.</p>
           <p class="meta">Role: {{ role }} | Viewing {{ data_label }}.</p>
-          <div class="links">
-            <a href="/">Home</a>
-            <a href="/infrastructure">Infrastructure</a>
-            {% if is_admin %}<a href="/user-roles">User Roles</a>{% endif %}
-            <a href="/logout">Logout</a>
-          </div>
-          {% if is_admin %}<a class="admin-btn" href="/user-roles">Open Admin Items</a>{% endif %}
+          <div class="links"><a href="/logout">Logout</a></div>
         </div>
       </div>
 
@@ -270,6 +265,7 @@ def build_dashboard_context(user, role, data_label, students):
         "role": role,
         "is_admin": role == "ADMIN",
         "data_label": data_label,
+      "global_navbar": "",
         "total_students": total_students,
         "total_sessions": total_sessions,
         "distribution_data_json": json.dumps(distribution_data),

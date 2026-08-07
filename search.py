@@ -24,6 +24,7 @@ SEARCH_TEMPLATE = """
     </style>
   </head>
   <body>
+    {{ global_navbar|safe }}
     <div class="wrap">
       <div class="card">
         <div class="top">
@@ -101,7 +102,7 @@ def filter_students(students, query):
     return filtered
 
 
-def render_search_page(students, query, role, data_label, is_admin=False, can_edit=True, message=None):
+def render_search_page(students, query, role, data_label, is_admin=False, can_edit=True, message=None, global_navbar=""):
     return render_template_string(
         SEARCH_TEMPLATE,
         students=students,
@@ -111,4 +112,5 @@ def render_search_page(students, query, role, data_label, is_admin=False, can_ed
         is_admin=is_admin,
         can_edit=can_edit,
         message=message,
+    global_navbar=global_navbar,
     )
