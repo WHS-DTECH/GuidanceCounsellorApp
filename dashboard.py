@@ -69,11 +69,11 @@ DASHBOARD_WEB_TEMPLATE = """
       }
 
       .main {
-        padding: 28px 34px;
+        padding: 34px 40px;
       }
-      .title { margin: 0; font-size: 50px; letter-spacing: 0.2px; }
-      .meta { color: var(--muted); margin: 6px 0; font-size: 18px; }
-      .logout-line { margin-top: 12px; }
+      .title { margin: 0; font-size: 56px; letter-spacing: 0.2px; font-weight: 800; }
+      .meta { color: var(--muted); margin: 6px 0; font-size: 17px; }
+      .logout-line { margin-top: 10px; }
       .logout-line a { color: #334155; }
 
       .stats {
@@ -85,11 +85,11 @@ DASHBOARD_WEB_TEMPLATE = """
       .card {
         background: var(--card);
         border-radius: 18px;
-        padding: 22px;
+        padding: 24px;
         box-shadow: 0 10px 20px rgba(15, 23, 42, 0.05);
       }
-      .stat-label { color: #a1a6b0; font-size: 18px; }
-      .stat-value { font-size: 44px; font-weight: 800; margin-top: 6px; }
+      .stat-label { color: #a1a6b0; font-size: 16px; }
+      .stat-value { font-size: 52px; font-weight: 800; margin-top: 8px; line-height: 1; }
 
       .charts {
         margin-top: 20px;
@@ -97,7 +97,7 @@ DASHBOARD_WEB_TEMPLATE = """
         grid-template-columns: 1fr 1fr;
         gap: 18px;
       }
-      .chart-card h3 { margin-top: 0; margin-bottom: 14px; font-size: 36px; }
+      .chart-card h3 { margin-top: 0; margin-bottom: 14px; font-size: 42px; }
       .chart-header {
         display: flex;
         justify-content: space-between;
@@ -109,7 +109,7 @@ DASHBOARD_WEB_TEMPLATE = """
         padding: 8px 12px;
         border-radius: 10px;
         border: 1px solid #dbe3ef;
-        background: #f8fafc;
+        background: #ffffff;
         color: #3a78e8;
         font-weight: 700;
       }
@@ -122,11 +122,11 @@ DASHBOARD_WEB_TEMPLATE = """
         align-items: baseline;
         margin-bottom: 8px;
       }
-      .distribution-name { font-size: 22px; }
+      .distribution-name { font-size: 34px; }
       .distribution-meta { color: #9ca3af; font-size: 14px; }
       .distribution-track {
         width: 100%;
-        height: 14px;
+        height: 16px;
         background: #dbe3ef;
         border-radius: 999px;
       }
@@ -153,7 +153,7 @@ DASHBOARD_WEB_TEMPLATE = """
       }
       .timeline-area {
         margin-top: 18px;
-        min-height: 270px;
+        min-height: 320px;
         border-top: 1px solid #dde3ec;
         display: grid;
         grid-template-columns: repeat(12, minmax(0, 1fr));
@@ -175,7 +175,7 @@ DASHBOARD_WEB_TEMPLATE = """
       .timeline-label {
         margin-top: 8px;
         color: #8090a7;
-        font-size: 12px;
+        font-size: 13px;
         font-weight: 700;
       }
 
