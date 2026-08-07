@@ -1,100 +1,114 @@
-import flet as ft
+from flask import render_template_string
 
-class SearchView(ft.Container):
-    def __init__(self, page: ft.Page, controller):
-        super().__init__()
-        self.main_page = page
-        self.controller = controller
-        self.expand = True
-        self.bgcolor = "#F3F4F6"
-        
-        # Floating Action Button without icons
-        self.main_page.floating_action_button = ft.FloatingActionButton(
-            content=ft.Text("New Student", color="white"),
-            bgcolor="#22C55E",
-            width=140,
-            shape=ft.RoundedRectangleBorder(radius=10),
-            on_click=lambda _: self.controller.create_new_student_and_edit()
-        )
 
-        self.results_list = ft.Column(spacing=10, scroll=ft.ScrollMode.AUTO)
+SEARCH_TEMPLATE = """
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Students</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 0; background: #f3f4f6; color: #111827; }
+      .wrap { max-width: 1100px; margin: 24px auto; padding: 0 16px 24px; }
+      .card { background: white; border-radius: 14px; padding: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
+      .top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+      .controls { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+      input, button, select { padding: 8px 10px; font-size: 14px; }
+      table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+      th, td { border-bottom: 1px solid #e5e7eb; padding: 10px; text-align: left; }
+      .muted { color: #6b7280; }
+      .danger { color: #b91c1c; }
+      .row-actions a, .row-actions button { margin-right: 8px; }
+      form.inline { display: inline; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <div class="top">
+          <h1>Student Database</h1>
+          <div>
+            <a href="/dashboard">Dashboard</a>
+            {% if is_admin %}| <a href="/user-roles">User Roles</a>{% endif %}
+            | <a href="/logout">Logout</a>
+          </div>
+        </div>
 
-        self.content = ft.Row(
-            controls=[
-                self.build_sidebar(),
-                self.build_main_content(),
-            ],
-            spacing=0,
-            expand=True
-        )
+        <p class="muted">Role: {{ role }} | Data source: {{ data_label }}</p>
 
-    def did_mount(self):
-        # Show button when view is loaded
-        if self.main_page.floating_action_button:
-            self.main_page.floating_action_button.visible = True
-        self.main_page.update()
-        self.refresh_list()
+        {% if message %}<p class="danger">{{ message }}</p>{% endif %}
 
-    def build_sidebar(self):
-        return ft.Container(
-            width=280,
-            bgcolor="#1E293B",
-            padding=20,
-            content=ft.Column(
-                controls=[
-                    ft.Text("SEND-C", size=28, weight="bold", color="white"),
-                    ft.Divider(height=20, color="transparent"),
-                    self.sidebar_item("DASHBOARD", on_click=lambda _: self.controller.cancel_session_and_go_back()),
-                    self.sidebar_item("STUDENTS", active=True),
-                ]
-            )
-        )
+        <form method="get" action="/students" class="controls">
+          <input type="text" name="q" placeholder="Search by name or ID" value="{{ query }}">
+          <button type="submit">Search</button>
+          {% if can_edit %}<a href="/students/edit">Add Student</a>{% endif %}
+        </form>
 
-    def sidebar_item(self, text, active=False, on_click=None):
-        return ft.Container(
-            content=ft.Text(text, color="white" if active else "white70", size=14, weight="bold"),
-            padding=15,
-            border_radius=10,
-            bgcolor="white10" if active else "transparent",
-            on_click=on_click
-        )
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Preferred</th>
+              <th>Gender</th>
+              <th>Ethnicity</th>
+              <th>Referral</th>
+              <th>Sessions</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in students %}
+            <tr>
+              <td>{{ s.get('student_id', '') }}</td>
+              <td>{{ s.get('full_name', '') }}</td>
+              <td>{{ s.get('preferred_name', '') }}</td>
+              <td>{{ s.get('gender', '') }}</td>
+              <td>{{ s.get('ethnicity', '') }}</td>
+              <td>{{ s.get('referral_type', '') }}</td>
+              <td>{{ s.get('sessions', [])|length }}</td>
+              <td class="row-actions">
+                <a href="/students/edit?student_id={{ s.get('student_id', '') }}">Edit</a>
+                {% if can_edit %}
+                <form method="post" action="/students/delete" class="inline" onsubmit="return confirm('Delete this student?');">
+                  <input type="hidden" name="student_id" value="{{ s.get('student_id', '') }}">
+                  <button type="submit">Delete</button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </body>
+</html>
+"""
 
-    def build_main_content(self):
-        return ft.Container(
-            expand=True,
-            padding=40,
-            content=ft.Column(
-                controls=[
-                    ft.TextButton("< BACK", on_click=lambda _: self.controller.cancel_session_and_go_back()),
-                    ft.Text("Student Database", size=32, weight="bold", color="#0F172A"),
-                    ft.TextField(
-                        hint_text="Search by name...",
-                        on_change=self.on_search_change,
-                    ),
-                    self.results_list
-                ]
-            )
-        )
 
-    def refresh_list(self, search_term=""):
-        self.results_list.controls.clear()
-        students = self.controller.get_students()
-        
-        for s in students:
-            # Check if full_name exists to avoid errors
-            full_name = s.get("full_name", "")
-            if search_term.lower() in full_name.lower():
-                self.results_list.controls.append(
-                    ft.Container(
-                        content=ft.Text(f"{full_name} (ID: {s.get('student_id', 'N/A')})", color="black"),
-                        padding=15, 
-                        bgcolor="white", 
-                        border_radius=10,
-                        shadow=ft.BoxShadow(blur_radius=5, color="black12"),
-                        on_click=lambda _, student=s: self.controller.show_editor(student)
-                    )
-                )
-        self.update()
+def filter_students(students, query):
+    q = (query or "").strip().lower()
+    if not q:
+        return students
+    filtered = []
+    for student in students:
+        student_id = str(student.get("student_id", "")).lower()
+        full_name = str(student.get("full_name", "")).lower()
+        if q in student_id or q in full_name:
+            filtered.append(student)
+    return filtered
 
-    def on_search_change(self, e):
-        self.refresh_list(e.control.value)
+
+def render_search_page(students, query, role, data_label, is_admin=False, can_edit=True, message=None):
+    return render_template_string(
+        SEARCH_TEMPLATE,
+        students=students,
+        query=query,
+        role=role,
+        data_label=data_label,
+        is_admin=is_admin,
+        can_edit=can_edit,
+        message=message,
+    )

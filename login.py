@@ -1,86 +1,91 @@
-import flet as ft
+from flask import render_template_string
 
 
-class LoginView(ft.Container):
-    def __init__(self, page: ft.Page, controller, is_registration=False):
-        super().__init__()
-        self.main_page = page
-        self.controller = controller
-        self.is_registration = is_registration
+LOGIN_TEMPLATE = """
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SEND-C Login</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 0; background: #f3f4f6; color: #111827; }
+      .page { max-width: 480px; margin: 60px auto; padding: 24px; background: white; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+      h1 { margin-top: 0; }
+      form { display: flex; flex-direction: column; gap: 12px; }
+      input, button { padding: 10px; font-size: 16px; }
+      .msg { color: #b91c1c; margin-top: 8px; }
+      .link { margin-top: 12px; }
+      .admin-btn { display: inline-block; margin-top: 10px; padding: 8px 12px; border-radius: 8px; background: #1f2937; color: white; text-decoration: none; }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <h1>SEND-C</h1>
+      {% if user %}
+        <p>Welcome, {{ user }}.</p>
+        <p>Role: {{ role }}</p>
+        <p><a href="/dashboard">Dashboard</a></p>
+        {% if role == 'ADMIN' %}<p><a class="admin-btn" href="/user-roles">Admin Items</a></p>{% endif %}
+        <p><a href="/logout">Logout</a></p>
+      {% else %}
+        <form method="post" action="/login">
+          <input name="username" placeholder="Username" required>
+          <input name="password" type="password" placeholder="Password" required>
+          <button type="submit">Login</button>
+        </form>
+        {% if message %}<div class="msg">{{ message }}</div>{% endif %}
+        {% if google_enabled %}
+          <div class="link"><a href="/auth/google/login">Sign in with Google</a></div>
+        {% endif %}
+        <div class="link"><a href="/register">Create account</a></div>
+      {% endif %}
+    </div>
+  </body>
+</html>
+"""
 
-        self.expand = True
-        self.bgcolor = "#F3F4F6"
 
-        self.username_input = ft.TextField(label="Username", autofocus=True)
-        self.password_input = ft.TextField(label="Password", password=True, can_reveal_password=True)
-        self.message_text = ft.Text("", color="#EF4444", size=13)
+REGISTER_TEMPLATE = """
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Create account</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 0; background: #f3f4f6; }
+      .page { max-width: 480px; margin: 60px auto; padding: 24px; background: white; border-radius: 16px; }
+      form { display: flex; flex-direction: column; gap: 12px; }
+      input, button { padding: 10px; font-size: 16px; }
+      .msg { color: #b91c1c; margin-top: 8px; }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <h1>Create account</h1>
+      <form method="post" action="/register">
+        <input name="username" placeholder="Username" required>
+        <input name="password" type="password" placeholder="Password" required>
+        <button type="submit">Create account</button>
+      </form>
+      {% if message %}<div class="msg">{{ message }}</div>{% endif %}
+      <p><a href="/">Back to login</a></p>
+    </div>
+  </body>
+</html>
+"""
 
-        self.content = ft.Row(
-            alignment="center",
-            vertical_alignment="center",
-            controls=[
-                ft.Container(
-                    width=420,
-                    bgcolor="white",
-                    border_radius=16,
-                    padding=30,
-                    shadow=ft.BoxShadow(blur_radius=12, color="black12"),
-                    content=ft.Column(
-                        tight=True,
-                        controls=[
-                            ft.Text("SEND-C", size=32, weight="bold", color="#0F172A"),
-                            ft.Text(
-                                "Create an account" if self.is_registration else "Sign in",
-                                size=16,
-                                color="#475569",
-                            ),
-                            ft.Divider(height=12, color="transparent"),
-                            self.username_input,
-                            self.password_input,
-                            self.message_text,
-                            ft.Divider(height=6, color="transparent"),
-                            ft.ElevatedButton(
-                                "Create account" if self.is_registration else "Login",
-                                bgcolor="#22C55E",
-                                color="white",
-                                height=44,
-                                on_click=self.submit,
-                            ),
-                            ft.OutlinedButton(
-                                "Continue with Google",
-                                icon=ft.icons.GOOGLE,
-                                height=44,
-                                on_click=self.google_login,
-                            ),
-                        ],
-                    ),
-                )
-            ],
-        )
 
-    def submit(self, _):
-        username = (self.username_input.value or "").strip()
-        password = (self.password_input.value or "").strip()
+def render_login_page(message=None, user=None, role=None, google_enabled=False):
+    return render_template_string(
+        LOGIN_TEMPLATE,
+        message=message,
+        user=user,
+        role=role,
+        google_enabled=google_enabled,
+    )
 
-        if not username or not password:
-            self.message_text.value = "Username and password are required."
-            self.update()
-            return
 
-        if self.is_registration:
-            self.controller.register_new_user(username, password)
-            return
-
-        if self.controller.verify_login(username, password):
-            self.controller.login_success()
-            return
-
-        self.message_text.value = "Invalid username or password."
-        self.update()
-
-    def google_login(self, _):
-        self.controller.google_auth.start_login()
-
-    def set_message(self, message):
-        self.message_text.value = message
-        self.update()
+def render_register_page(message=None):
+    return render_template_string(REGISTER_TEMPLATE, message=message)
