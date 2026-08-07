@@ -146,3 +146,13 @@ class StudentBackend:
                 )
         except Exception as e:
             print(f"Error registering user: {e}")
+
+    def set_google_login(self, username, display_name):
+        try:
+            with sqlite3.connect(self.db_name) as conn:
+                conn.execute(
+                    "INSERT OR REPLACE INTO users (username, password_hash, salt) VALUES (?, ?, ?)",
+                    (username, b"google", b"google")
+                )
+        except Exception as e:
+            print(f"Error storing Google login: {e}")

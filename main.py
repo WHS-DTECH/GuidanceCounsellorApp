@@ -4,6 +4,7 @@ from search import SearchView
 from editor import EditorView
 from login import LoginView
 from database import StudentBackend
+from google_auth import GoogleOAuthFlow
 import datetime
 
 class AppController:
@@ -15,6 +16,7 @@ class AppController:
 
         # Initialize database
         self.db = StudentBackend() 
+        self.google_auth = GoogleOAuthFlow(self)
         self.current_session_start = None
 
         async def force_fullscreen_and_load():
@@ -123,6 +125,20 @@ class AppController:
         
         self.page.add(LoginView(self.page, self, is_registration=is_reg))
         self.page.update()
+
+    def show_login_message(self, message):
+        if self.page.controls:
+            login_view = self.page.controls[0]
+            if hasattr(login_view, "set_message"):
+                login_view.set_message(message)
+                self.page.update()
+
+    def complete_google_login(self, user_info):
+        email = user_info.get("email") or ""
+        name = user_info.get("name") or email.split("@", 1)[0]
+        self.db.register_user(email, "google-oauth")
+        self.db.set_google_login(email, name)
+        self.show_dashboard()
 
     def register_new_user(self, username, password):
         """Called by LoginView to create the user."""

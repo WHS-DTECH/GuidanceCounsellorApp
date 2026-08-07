@@ -46,6 +46,12 @@ class LoginView(ft.Container):
                                 height=44,
                                 on_click=self.submit,
                             ),
+                            ft.OutlinedButton(
+                                "Continue with Google",
+                                icon=ft.icons.GOOGLE,
+                                height=44,
+                                on_click=self.google_login,
+                            ),
                         ],
                     ),
                 )
@@ -70,4 +76,11 @@ class LoginView(ft.Container):
             return
 
         self.message_text.value = "Invalid username or password."
+        self.update()
+
+    def google_login(self, _):
+        self.controller.google_auth.start_login()
+
+    def set_message(self, message):
+        self.message_text.value = message
         self.update()
