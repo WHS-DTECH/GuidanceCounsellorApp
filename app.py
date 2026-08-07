@@ -29,6 +29,7 @@ HTML_TEMPLATE = """
       input, button { padding: 10px; font-size: 16px; }
       .msg { color: #b91c1c; margin-top: 8px; }
       .link { margin-top: 12px; }
+      .admin-btn { display: inline-block; margin-top: 10px; padding: 8px 12px; border-radius: 8px; background: #1f2937; color: white; text-decoration: none; }
     </style>
   </head>
   <body>
@@ -38,7 +39,7 @@ HTML_TEMPLATE = """
         <p>Welcome, {{ session['user'] }}.</p>
         <p>Role: {{ role }}</p>
         <p><a href="/dashboard">Dashboard</a></p>
-        {% if role == 'ADMIN' %}<p><a href="/user-roles">User Roles</a></p>{% endif %}
+        {% if role == 'ADMIN' %}<p><a class="admin-btn" href="/user-roles">Admin Items</a></p>{% endif %}
         <p><a href="/logout">Logout</a></p>
       {% else %}
         <form method="post" action="/login">

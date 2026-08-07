@@ -43,6 +43,15 @@ DASHBOARD_WEB_TEMPLATE = """
       .meta { color: var(--muted); margin: 4px 0; }
       .links { margin-top: 8px; }
       .links a { margin-right: 10px; }
+      .admin-btn {
+        display: inline-block;
+        margin-top: 10px;
+        padding: 8px 12px;
+        border-radius: 8px;
+        background: #1f2937;
+        color: white;
+        text-decoration: none;
+      }
       .stats {
         margin-top: 18px;
         display: grid;
@@ -94,6 +103,7 @@ DASHBOARD_WEB_TEMPLATE = """
             {% if is_admin %}<a href="/user-roles">User Roles</a>{% endif %}
             <a href="/logout">Logout</a>
           </div>
+          {% if is_admin %}<a class="admin-btn" href="/user-roles">Open Admin Items</a>{% endif %}
         </div>
       </div>
 

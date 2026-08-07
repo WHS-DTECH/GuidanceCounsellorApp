@@ -106,7 +106,10 @@ class StudentBackend:
                         "INSERT INTO users (username, password_hash, salt) VALUES (?, ?, ?)",
                         (admin_username, pwd_hash, salt)
                     )
-                self.set_user_role(admin_username, "ADMIN")
+                conn.execute(
+                    "INSERT OR REPLACE INTO user_roles (username, role) VALUES (?, ?)",
+                    (admin_username, "ADMIN")
+                )
         except Exception as e:
             print(f"Error creating admin account: {e}")
 
