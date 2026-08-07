@@ -10,88 +10,252 @@ EDITOR_TEMPLATE = """
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ page_title }}</title>
     <style>
-      body { font-family: Arial, sans-serif; margin: 0; background: #f3f4f6; color: #111827; }
-      .wrap { max-width: 1100px; margin: 24px auto; padding: 0 16px 24px; }
-      .card { background: white; border-radius: 14px; padding: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
-      .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-      .full { grid-column: 1 / -1; }
-      label { display: block; font-size: 13px; color: #6b7280; margin-bottom: 4px; }
-      input, textarea, select, button { width: 100%; padding: 10px; font-size: 14px; }
-      textarea { min-height: 100px; }
-      .actions { display: flex; gap: 8px; margin-top: 12px; }
-      .actions a, .actions button { width: auto; }
-      .msg { color: #b91c1c; }
-      @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+      :root {
+        --bg: #eef1f7;
+        --card: #ffffff;
+        --text: #1a243b;
+        --muted: #7c889c;
+        --line: #d9e2ef;
+        --sidebar-bg: #232f45;
+        --sidebar-pill: #3a465d;
+        --blue: #3a78e8;
+        --green: #23c06a;
+      }
+      * { box-sizing: border-box; }
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      .app-shell {
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        min-height: calc(100vh - 52px);
+      }
+
+      .sidebar {
+        background: var(--sidebar-bg);
+        color: #ffffff;
+        padding: 26px 20px;
+        display: flex;
+        flex-direction: column;
+      }
+      .brand {
+        font-size: 44px;
+        font-weight: 800;
+        letter-spacing: 1px;
+        margin: 6px 0 26px;
+      }
+      .nav-link {
+        display: inline-block;
+        padding: 14px 16px;
+        border-radius: 12px;
+        color: #ffffff;
+        text-decoration: none;
+        font-weight: 700;
+      }
+      .nav-link.secondary { margin-top: 8px; opacity: 0.82; }
+      .nav-link.active { background: var(--sidebar-pill); opacity: 1; }
+
+      .content {
+        padding: 28px 42px;
+      }
+
+      .profile-grid {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .span-12 { grid-column: span 12; }
+      .span-8 { grid-column: span 8; }
+      .span-6 { grid-column: span 6; }
+      .span-4 { grid-column: span 4; }
+      .span-2 { grid-column: span 2; }
+
+      .page-title {
+        margin: 2px 0 20px;
+        font-size: 48px;
+        font-weight: 800;
+        letter-spacing: 0.2px;
+      }
+      .section-title {
+        margin: 20px 0 8px;
+        font-size: 38px;
+        font-weight: 800;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+      }
+      label {
+        display: block;
+        font-size: 13px;
+        color: var(--muted);
+        margin-bottom: 4px;
+      }
+      input,
+      textarea,
+      button {
+        width: 100%;
+        border: 1px solid var(--line);
+        background: #f9fbff;
+        color: #3b4455;
+        border-radius: 6px;
+        padding: 12px 16px;
+        font-size: 16px;
+      }
+      input[disabled] {
+        color: #a2adbd;
+        background: #f2f5fa;
+      }
+      textarea {
+        min-height: 150px;
+        resize: vertical;
+      }
+
+      .select-link {
+        margin-top: 32px;
+        color: var(--blue);
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 14px;
+        margin-top: 20px;
+      }
+      .btn {
+        text-decoration: none;
+        display: inline-block;
+        border-radius: 999px;
+        padding: 11px 22px;
+        font-weight: 700;
+        font-size: 30px;
+        border: 1px solid transparent;
+      }
+      .btn-cancel {
+        background: #f7f9fc;
+        border-color: var(--line);
+        color: #3b5d8b;
+      }
+      .btn-save {
+        background: var(--green);
+        color: #ffffff;
+      }
+
+      .msg { color: #b91c1c; margin-bottom: 8px; }
+      .toolbar { margin-bottom: 8px; }
+      .toolbar a { margin-right: 8px; color: #3b5d8b; }
+
+      @media (max-width: 980px) {
+        .app-shell { grid-template-columns: 1fr; }
+        .sidebar { display: none; }
+        .content { padding: 18px 14px; }
+      }
+      @media (max-width: 760px) {
+        .page-title { font-size: 34px; }
+        .section-title { font-size: 26px; }
+        .span-8, .span-6, .span-4, .span-2 { grid-column: span 12; }
+        .actions { justify-content: stretch; }
+        .btn { width: 100%; text-align: center; }
+      }
     </style>
   </head>
   <body>
     {{ global_navbar|safe }}
-    <div class="wrap">
-      <div class="card">
-        <h1>{{ page_title }}</h1>
-        <p><a href="/students">Back to Students</a> | <a href="/dashboard">Dashboard</a> | <a href="/logout">Logout</a></p>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">SEND-C</div>
+        <a class="nav-link" href="/dashboard">DASHBOARD</a>
+        <a class="nav-link active secondary" href="/students">STUDENTS</a>
+      </aside>
+
+      <main class="content">
+        <h1 class="page-title">{{ page_title }}</h1>
+        <div class="toolbar"><a href="/students">Back to Students</a> | <a href="/dashboard">Dashboard</a> | <a href="/logout">Logout</a></div>
         {% if message %}<p class="msg">{{ message }}</p>{% endif %}
+
         <form method="post" action="/students/edit">
           <input type="hidden" name="student_id" value="{{ student.get('student_id', '') }}">
-          <div class="grid">
-            <div>
+          <div class="profile-grid">
+            <h2 class="section-title span-12">Core Details</h2>
+
+            <div class="field span-6">
               <label>Full Name</label>
               <input name="full_name" value="{{ student.get('full_name', '') }}" required>
             </div>
-            <div>
+            <div class="field span-6">
               <label>Preferred Name</label>
               <input name="preferred_name" value="{{ student.get('preferred_name', '') }}">
             </div>
-            <div>
+
+            <div class="field span-4">
               <label>Date of Birth (DD.MM.YYYY)</label>
               <input name="dob" value="{{ student.get('dob', '') }}">
             </div>
-            <div>
+            <div class="field span-2">
               <label>Age (calculated)</label>
               <input value="{{ age }}" disabled>
             </div>
-            <div>
+            <div class="field span-3">
               <label>Gender</label>
               <input name="gender" value="{{ student.get('gender', '') }}">
             </div>
-            <div>
+            <div class="field span-3">
               <label>Ethnicity</label>
               <input name="ethnicity" value="{{ student.get('ethnicity', '') }}">
             </div>
-            <div>
+
+            <h2 class="section-title span-12">Contact & Relations</h2>
+
+            <div class="field span-4">
               <label>Address</label>
               <input name="address" value="{{ student.get('address', '') }}">
             </div>
-            <div>
-              <label>Phone</label>
+            <div class="field span-4">
+              <label>Phone Numbers</label>
               <input name="phone" value="{{ student.get('phone', '') }}">
             </div>
-            <div>
-              <label>Whānau</label>
-              <input name="whanau" value="{{ student.get('whanau', '') }}">
-            </div>
-            <div>
-              <label>Care Giver</label>
-              <input name="care_giver" value="{{ student.get('care_giver', '') }}">
-            </div>
-            <div class="full">
+            <div class="field span-4">
               <label>Referral Type</label>
               <input name="referral_type" value="{{ student.get('referral_type', '') }}">
             </div>
-            <div class="full">
+
+            <div class="field span-6">
+              <label>Whānau</label>
+              <input name="whanau" value="{{ student.get('whanau', '') }}">
+            </div>
+            <div class="field span-6">
+              <label>Care Giver</label>
+              <input name="care_giver" value="{{ student.get('care_giver', '') }}">
+            </div>
+
+            <h2 class="section-title span-12">Session Tracking</h2>
+
+            <div class="field span-12">
               <label>Session Times (comma-separated, HH:MM DD.MM.YYYY)</label>
               <input name="sessions_list" value="{{ sessions_string }}">
             </div>
-            <div class="full">
-              <label>Notes</label>
+
+            <h2 class="section-title span-12">Notes</h2>
+
+            <div class="field span-12">
+              <label>Notes about Student</label>
               <textarea name="notes">{{ student.get('notes', '') }}</textarea>
             </div>
           </div>
+
           <div class="actions">
-            <button type="submit">Save Student Profile</button>
+            <a class="btn btn-cancel" href="/students">CANCEL</a>
+            <button class="btn btn-save" type="submit">SAVE STUDENT PROFILE</button>
           </div>
         </form>
-      </div>
+      </main>
     </div>
   </body>
 </html>
