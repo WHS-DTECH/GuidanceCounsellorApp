@@ -43,6 +43,15 @@ class StudentBackend:
                     salt BLOB
                 )
             """)
+        with sqlite3.connect(self.db_name) as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS user_roles (
+                    username TEXT PRIMARY KEY,
+                    role TEXT NOT NULL
+                )
+            """)
+
+        self.ensure_admin_account()
 
     def _encrypt(self, data_dict):
         return self.cipher.encrypt(json.dumps(data_dict).encode())
@@ -85,6 +94,67 @@ class StudentBackend:
     def has_registered_user(self):
         return self.get_stored_user() is not None
 
+    def ensure_admin_account(self):
+        admin_username = "vanessapringle@westlandhigh.school.nz"
+        try:
+            with sqlite3.connect(self.db_name) as conn:
+                cursor = conn.execute("SELECT username FROM users WHERE username = ?", (admin_username,))
+                if cursor.fetchone() is None:
+                    salt = secrets.token_bytes(16)
+                    pwd_hash = hashlib.pbkdf2_hmac('sha256', b"Admin2026!", salt, 100_000)
+                    conn.execute(
+                        "INSERT INTO users (username, password_hash, salt) VALUES (?, ?, ?)",
+                        (admin_username, pwd_hash, salt)
+                    )
+                self.set_user_role(admin_username, "ADMIN")
+        except Exception as e:
+            print(f"Error creating admin account: {e}")
+
+    def normalize_role(self, role):
+        role_text = (role or "Counsellor").strip()
+        if role_text.upper() == "ADMIN":
+            return "ADMIN"
+        if role_text.upper() == "COUNSELLOR":
+            return "Counsellor"
+        if role_text.upper() == "APPBUILDER":
+            return "AppBuilder"
+        return "Counsellor"
+
+    def set_user_role(self, username, role):
+        normalized_role = self.normalize_role(role)
+        try:
+            with sqlite3.connect(self.db_name) as conn:
+                conn.execute(
+                    "INSERT OR REPLACE INTO user_roles (username, role) VALUES (?, ?)",
+                    (username, normalized_role)
+                )
+        except Exception as e:
+            print(f"Error updating role: {e}")
+
+    def get_user_role(self, username):
+        try:
+            with sqlite3.connect(self.db_name) as conn:
+                cursor = conn.execute("SELECT role FROM user_roles WHERE username = ?", (username,))
+                row = cursor.fetchone()
+                if row:
+                    return self.normalize_role(row[0])
+        except Exception as e:
+            print(f"Error reading role: {e}")
+        return "Counsellor"
+
+    def list_user_roles(self):
+        users = []
+        try:
+            with sqlite3.connect(self.db_name) as conn:
+                cursor = conn.execute("SELECT username FROM users ORDER BY username")
+                for row in cursor.fetchall():
+                    username = row[0]
+                    role = self.get_user_role(username)
+                    users.append({"username": username, "role": role})
+        except Exception as e:
+            print(f"Error listing users: {e}")
+        return users
+
     # --- STUDENT METHODS ---
     def upsert_student(self, student_id, data_dict):
         encrypted_blob = self._encrypt(data_dict)
@@ -108,6 +178,12 @@ class StudentBackend:
         except Exception as e:
             print(f"Error loading students: {e}")
         return students
+
+    def get_dummy_students(self):
+        return [
+            {"student_id": "DUMMY-001", "full_name": "Sample Student A", "preferred_name": "A", "gender": "Female", "ethnicity": "NZ European", "referral_type": "Self", "notes": "Dummy dataset for AppBuilder"},
+            {"student_id": "DUMMY-002", "full_name": "Sample Student B", "preferred_name": "B", "gender": "Male", "ethnicity": "Māori", "referral_type": "School", "notes": "Dummy dataset for AppBuilder"},
+        ]
     
     # --- CUSTOM OPTIONS METHODS ---
     def add_custom_option(self, category, value):
@@ -144,6 +220,8 @@ class StudentBackend:
                     "INSERT OR REPLACE INTO users (username, password_hash, salt) VALUES (?, ?, ?)",
                     (username, pwd_hash, salt)
                 )
+            default_role = "ADMIN" if not self.has_registered_user() else "Counsellor"
+            self.set_user_role(username, default_role)
         except Exception as e:
             print(f"Error registering user: {e}")
 
@@ -154,5 +232,6 @@ class StudentBackend:
                     "INSERT OR REPLACE INTO users (username, password_hash, salt) VALUES (?, ?, ?)",
                     (username, b"google", b"google")
                 )
+            self.set_user_role(username, "Counsellor")
         except Exception as e:
             print(f"Error storing Google login: {e}")

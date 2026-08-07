@@ -29,6 +29,9 @@ HTML_TEMPLATE = """
       <h1>SEND-C</h1>
       {% if session.get('user') %}
         <p>Welcome, {{ session['user'] }}.</p>
+        <p>Role: {{ role }}</p>
+        <p><a href="/dashboard">Dashboard</a></p>
+        {% if role == 'ADMIN' %}<p><a href="/user-roles">User Roles</a></p>{% endif %}
         <p><a href="/logout">Logout</a></p>
       {% else %}
         <form method="post" action="/login">
@@ -74,9 +77,17 @@ REGISTER_TEMPLATE = """
 """
 
 
+def current_role():
+    if session.get("user"):
+        return session.get("role") or backend.get_user_role(session["user"])
+    return None
+
+
 @app.route("/")
 def index():
-    return render_template_string(HTML_TEMPLATE, message=None)
+    if session.get("user"):
+        return redirect(url_for("dashboard"))
+    return render_template_string(HTML_TEMPLATE, message=None, role=None)
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -86,8 +97,9 @@ def login():
         password = (request.form.get("password") or "").strip()
         if backend.verify_user_login(username, password):
             session["user"] = username
+            session["role"] = backend.get_user_role(username)
             return redirect(url_for("dashboard"))
-        return render_template_string(HTML_TEMPLATE, message="Invalid username or password")
+        return render_template_string(HTML_TEMPLATE, message="Invalid username or password", role=None)
     return redirect(url_for("index"))
 
 
@@ -98,8 +110,11 @@ def register():
         password = (request.form.get("password") or "").strip()
         if not username or not password:
             return render_template_string(REGISTER_TEMPLATE, message="Username and password are required")
+        initial_role = "ADMIN" if not backend.has_registered_user() else "Counsellor"
         backend.register_user(username, password)
+        backend.set_user_role(username, initial_role)
         session["user"] = username
+        session["role"] = backend.get_user_role(username)
         return redirect(url_for("dashboard"))
     return render_template_string(REGISTER_TEMPLATE, message=None)
 
@@ -108,7 +123,14 @@ def register():
 def dashboard():
     if not session.get("user"):
         return redirect(url_for("index"))
-    students = backend.get_all_students_list()
+
+    role = session.get("role") or backend.get_user_role(session["user"])
+    if role not in {"ADMIN", "Counsellor", "AppBuilder"}:
+        role = "Counsellor"
+
+    students = backend.get_dummy_students() if role == "AppBuilder" else backend.get_all_students_list()
+    data_label = "dummy dataset" if role == "AppBuilder" else "live dataset"
+
     return render_template_string("""
     <!doctype html>
     <html>
@@ -116,7 +138,9 @@ def dashboard():
       <body style="font-family: Arial, sans-serif; margin: 24px;">
         <h1>Dashboard</h1>
         <p>Welcome, {{ user }}.</p>
-        <p><a href="/logout">Logout</a></p>
+        <p>Role: {{ role }}</p>
+        <p>Viewing {{ data_label }}.</p>
+        <p><a href="/">Home</a> | <a href="/infrastructure">Infrastructure</a> {% if role == 'ADMIN' %}| <a href="/user-roles">User Roles</a>{% endif %} | <a href="/logout">Logout</a></p>
         <h2>Students</h2>
         <ul>
           {% for student in students %}
@@ -125,12 +149,99 @@ def dashboard():
         </ul>
       </body>
     </html>
-    """, user=session["user"], students=students)
+    """, user=session["user"], role=role, data_label=data_label, students=students)
+
+
+@app.route("/infrastructure")
+def infrastructure():
+    if not session.get("user"):
+        return redirect(url_for("index"))
+
+    role = session.get("role") or backend.get_user_role(session["user"])
+    if role not in {"ADMIN", "Counsellor", "AppBuilder"}:
+        return redirect(url_for("dashboard"))
+
+    students = backend.get_dummy_students() if role == "AppBuilder" else backend.get_all_students_list()
+    return render_template_string("""
+    <!doctype html>
+    <html>
+      <head><meta charset="utf-8"><title>Infrastructure</title></head>
+      <body style="font-family: Arial, sans-serif; margin: 24px;">
+        <h1>Infrastructure</h1>
+        <p>Role: {{ role }}</p>
+        <p>This view is restricted to {{ data_label }} for AppBuilder users.</p>
+        <p><a href="/dashboard">Dashboard</a> | <a href="/logout">Logout</a></p>
+        <h2>Sample infrastructure records</h2>
+        <ul>
+          {% for student in students %}
+            <li>{{ student.get('student_id') }} - {{ student.get('full_name') }}</li>
+          {% endfor %}
+        </ul>
+      </body>
+    </html>
+    """, role=role, data_label="dummy dataset" if role == "AppBuilder" else "live dataset", students=students)
+
+
+@app.route("/user-roles", methods=["GET", "POST"])
+def user_roles():
+    if not session.get("user"):
+        return redirect(url_for("index"))
+
+    role = session.get("role") or backend.get_user_role(session["user"])
+    if role != "ADMIN":
+        return render_template_string("""
+        <!doctype html>
+        <html><body><h1>Access denied</h1><p>This page is restricted to administrators.</p><p><a href="/dashboard">Back to dashboard</a></p></body></html>
+        """)
+
+    message = None
+    if request.method == "POST":
+        username = (request.form.get("username") or "").strip()
+        selected_role = (request.form.get("role") or "Counsellor").strip()
+        if username:
+            backend.set_user_role(username, selected_role)
+            session["role"] = backend.get_user_role(session["user"])
+            message = f"Updated role for {username}."
+
+    users = backend.list_user_roles()
+    return render_template_string("""
+    <!doctype html>
+    <html>
+      <head><meta charset="utf-8"><title>User Roles</title></head>
+      <body style="font-family: Arial, sans-serif; margin: 24px;">
+        <h1>User Role Management</h1>
+        <p><a href="/dashboard">Dashboard</a> | <a href="/logout">Logout</a></p>
+        {% if message %}<p><strong>{{ message }}</strong></p>{% endif %}
+        <form method="post" style="display:flex; flex-direction:column; gap:10px; max-width:360px;">
+          <label>Username</label>
+          <select name="username">
+            {% for user in users %}
+              <option value="{{ user.username }}">{{ user.username }}</option>
+            {% endfor %}
+          </select>
+          <label>Role</label>
+          <select name="role">
+            <option value="ADMIN">ADMIN</option>
+            <option value="Counsellor">Counsellor</option>
+            <option value="AppBuilder">AppBuilder</option>
+          </select>
+          <button type="submit">Save role</button>
+        </form>
+        <h2>Current assignments</h2>
+        <ul>
+          {% for user in users %}
+            <li>{{ user.username }} - {{ user.role }}</li>
+          {% endfor %}
+        </ul>
+      </body>
+    </html>
+    """, message=message, users=users)
 
 
 @app.route("/logout")
 def logout():
     session.pop("user", None)
+    session.pop("role", None)
     return redirect(url_for("index"))
 
 
