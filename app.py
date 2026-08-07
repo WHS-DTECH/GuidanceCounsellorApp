@@ -4,6 +4,7 @@ import urllib.parse
 import urllib.request
 from flask import Flask, render_template_string, request, redirect, session, url_for
 from database import StudentBackend
+from dashboard import DASHBOARD_WEB_TEMPLATE, build_dashboard_context
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "dev-secret-key")
@@ -205,26 +206,13 @@ def dashboard():
 
     students = backend.get_dummy_students() if role == "AppBuilder" else backend.get_all_students_list()
     data_label = "dummy dataset" if role == "AppBuilder" else "live dataset"
-
-    return render_template_string("""
-    <!doctype html>
-    <html>
-      <head><meta charset="utf-8"><title>Dashboard</title></head>
-      <body style="font-family: Arial, sans-serif; margin: 24px;">
-        <h1>Dashboard</h1>
-        <p>Welcome, {{ user }}.</p>
-        <p>Role: {{ role }}</p>
-        <p>Viewing {{ data_label }}.</p>
-        <p><a href="/">Home</a> | <a href="/infrastructure">Infrastructure</a> {% if role == 'ADMIN' %}| <a href="/user-roles">User Roles</a>{% endif %} | <a href="/logout">Logout</a></p>
-        <h2>Students</h2>
-        <ul>
-          {% for student in students %}
-            <li>{{ student.get('full_name') or student.get('student_id') or 'Unnamed student' }}</li>
-          {% endfor %}
-        </ul>
-      </body>
-    </html>
-    """, user=session["user"], role=role, data_label=data_label, students=students)
+    context = build_dashboard_context(
+        user=session["user"],
+        role=role,
+        data_label=data_label,
+        students=students,
+    )
+    return render_template_string(DASHBOARD_WEB_TEMPLATE, **context)
 
 
 @app.route("/infrastructure")
