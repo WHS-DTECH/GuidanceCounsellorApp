@@ -4,7 +4,13 @@ import os
 import sys
 import hashlib
 import secrets
+from urllib.parse import urlsplit
 from cryptography.fernet import Fernet
+
+try:
+    import psycopg
+except Exception:
+    psycopg = None
 
 
 ADMIN_USERNAME = "vanessapringle@westlandhigh.school.nz"
@@ -17,10 +23,37 @@ class StudentBackend:
         else:
             base_dir = os.path.dirname(os.path.abspath(__file__))
 
-        self.db_name = self._resolve_db_path(base_dir)
+        self.database_url = self._resolve_database_url()
+        self.use_postgres = bool(self.database_url and psycopg)
+        self.storage_kind = "postgresql" if self.use_postgres else "sqlite"
+
+        if self.use_postgres:
+            self.db_name = self._redacted_database_url(self.database_url)
+        else:
+            self.db_name = self._resolve_db_path(base_dir)
+
         self.key = b'S3iCjL6K4w7T8hR9gQ1vB2nN5mY0xZ4aP8oU7iE6wH4='
         self.cipher = Fernet(self.key)
         self._setup()
+
+    def _resolve_database_url(self):
+        raw = (os.getenv("DATABASE_URL") or "").strip()
+        if not raw:
+            return ""
+        if raw.startswith("postgres://"):
+            return "postgresql://" + raw[len("postgres://") :]
+        return raw
+
+    def _redacted_database_url(self, database_url):
+        try:
+            parsed = urlsplit(database_url)
+            host = parsed.hostname or "host"
+            port = f":{parsed.port}" if parsed.port else ""
+            dbname = parsed.path.lstrip("/") or "db"
+            user = parsed.username or "user"
+            return f"postgresql://{user}:***@{host}{port}/{dbname}"
+        except Exception:
+            return "postgresql://***"
 
     def _resolve_db_path(self, base_dir):
         # 1) Explicit env override: use this for persistent storage mounts.
@@ -44,38 +77,93 @@ class StudentBackend:
         return os.path.join(base_dir, "students_secure.db")
 
     def _setup(self):
-        with sqlite3.connect(self.db_name) as conn:
-            conn.execute("""
+        encrypted_type = "BYTEA" if self.use_postgres else "BLOB"
+        self._execute(
+            f"""
                 CREATE TABLE IF NOT EXISTS students (
                     student_id TEXT PRIMARY KEY,
-                    encrypted_data BLOB
+                    encrypted_data {encrypted_type}
                 )
-            """)
-        with sqlite3.connect(self.db_name) as conn:
-            conn.execute("""
+            """
+        )
+        self._execute(
+            f"""
                 CREATE TABLE IF NOT EXISTS custom_options (
                     category TEXT,
-                    encrypted_value BLOB,
+                    encrypted_value {encrypted_type},
                     PRIMARY KEY (category, encrypted_value)
                 )
-            """)
-        with sqlite3.connect(self.db_name) as conn:
-            conn.execute("""
+            """
+        )
+        self._execute(
+            f"""
                 CREATE TABLE IF NOT EXISTS users (
                     username TEXT PRIMARY KEY,
-                    password_hash BLOB,
-                    salt BLOB
+                    password_hash {encrypted_type},
+                    salt {encrypted_type}
                 )
-            """)
-        with sqlite3.connect(self.db_name) as conn:
-            conn.execute("""
+            """
+        )
+        self._execute(
+            """
                 CREATE TABLE IF NOT EXISTS user_roles (
                     username TEXT PRIMARY KEY,
                     role TEXT NOT NULL
                 )
-            """)
+            """
+        )
 
         self.ensure_admin_account()
+
+    def _execute(self, query, params=(), fetch=None):
+        if self.use_postgres:
+            pg_query = self._adapt_postgres_query(query.replace("?", "%s"))
+            with psycopg.connect(self.database_url) as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute(pg_query, params)
+                    if fetch == "one":
+                        return cursor.fetchone()
+                    if fetch == "all":
+                        return cursor.fetchall()
+            return None
+
+        with sqlite3.connect(self.db_name) as conn:
+            cursor = conn.execute(query, params)
+            if fetch == "one":
+                return cursor.fetchone()
+            if fetch == "all":
+                return cursor.fetchall()
+        return None
+
+    def _adapt_postgres_query(self, query):
+        normalized = " ".join(query.split())
+
+        if normalized.startswith("INSERT OR REPLACE INTO students"):
+            return (
+                "INSERT INTO students (student_id, encrypted_data) VALUES (%s, %s) "
+                "ON CONFLICT (student_id) DO UPDATE SET encrypted_data = EXCLUDED.encrypted_data"
+            )
+
+        if normalized.startswith("INSERT OR REPLACE INTO user_roles"):
+            return (
+                "INSERT INTO user_roles (username, role) VALUES (%s, %s) "
+                "ON CONFLICT (username) DO UPDATE SET role = EXCLUDED.role"
+            )
+
+        if normalized.startswith("INSERT OR REPLACE INTO users"):
+            return (
+                "INSERT INTO users (username, password_hash, salt) VALUES (%s, %s, %s) "
+                "ON CONFLICT (username) DO UPDATE SET "
+                "password_hash = EXCLUDED.password_hash, salt = EXCLUDED.salt"
+            )
+
+        if normalized.startswith("INSERT OR IGNORE INTO custom_options"):
+            return (
+                "INSERT INTO custom_options (category, encrypted_value) VALUES (%s, %s) "
+                "ON CONFLICT (category, encrypted_value) DO NOTHING"
+            )
+
+        return query
 
     def _encrypt(self, data_dict):
         return self.cipher.encrypt(json.dumps(data_dict).encode())
@@ -90,12 +178,10 @@ class StudentBackend:
         this returns a dummy password if a user exists to satisfy old checks.
         """
         try:
-            with sqlite3.connect(self.db_name) as conn:
-                cursor = conn.execute("SELECT username FROM users LIMIT 1")
-                row = cursor.fetchone()
-                if row:
-                    # Returns (username, dummy_password) so existing main.py checks won't crash
-                    return (row[0], "SECURE_HASHED_PASSWORD_PLACEHOLDER")
+            row = self._execute("SELECT username FROM users LIMIT 1", fetch="one")
+            if row:
+                # Returns (username, dummy_password) so existing main.py checks won't crash
+                return (row[0], "SECURE_HASHED_PASSWORD_PLACEHOLDER")
         except Exception as e:
             print(f"Compatibility error fetching user: {e}")
         return None
@@ -103,14 +189,16 @@ class StudentBackend:
     def verify_user_login(self, username, provided_password):
         """Verifies PBKDF2 hashed password against the database."""
         try:
-            with sqlite3.connect(self.db_name) as conn:
-                cursor = conn.execute("SELECT password_hash, salt FROM users WHERE username = ?", (username,))
-                row = cursor.fetchone()
-                if row:
-                    stored_hash = row[0]
-                    salt = row[1]
-                    computed_hash = hashlib.pbkdf2_hmac('sha256', provided_password.encode(), bytes(salt), 100_000)
-                    return secrets.compare_digest(stored_hash, computed_hash)
+            row = self._execute(
+                "SELECT password_hash, salt FROM users WHERE username = ?",
+                (username,),
+                fetch="one",
+            )
+            if row:
+                stored_hash = bytes(row[0])
+                salt = bytes(row[1])
+                computed_hash = hashlib.pbkdf2_hmac('sha256', provided_password.encode(), salt, 100_000)
+                return secrets.compare_digest(stored_hash, computed_hash)
         except Exception as e:
             print(f"Error during verification: {e}")
         return False
@@ -121,19 +209,22 @@ class StudentBackend:
     def ensure_admin_account(self):
         admin_username = ADMIN_USERNAME
         try:
-            with sqlite3.connect(self.db_name) as conn:
-                cursor = conn.execute("SELECT username FROM users WHERE username = ?", (admin_username,))
-                if cursor.fetchone() is None:
-                    salt = secrets.token_bytes(16)
-                    pwd_hash = hashlib.pbkdf2_hmac('sha256', b"Admin2026!", salt, 100_000)
-                    conn.execute(
-                        "INSERT INTO users (username, password_hash, salt) VALUES (?, ?, ?)",
-                        (admin_username, pwd_hash, salt)
-                    )
-                conn.execute(
-                    "INSERT OR REPLACE INTO user_roles (username, role) VALUES (?, ?)",
-                    (admin_username, "ADMIN")
+            row = self._execute(
+                "SELECT username FROM users WHERE username = ?",
+                (admin_username,),
+                fetch="one",
+            )
+            if row is None:
+                salt = secrets.token_bytes(16)
+                pwd_hash = hashlib.pbkdf2_hmac('sha256', b"Admin2026!", salt, 100_000)
+                self._execute(
+                    "INSERT INTO users (username, password_hash, salt) VALUES (?, ?, ?)",
+                    (admin_username, pwd_hash, salt),
                 )
+            self._execute(
+                "INSERT OR REPLACE INTO user_roles (username, role) VALUES (?, ?)",
+                (admin_username, "ADMIN"),
+            )
         except Exception as e:
             print(f"Error creating admin account: {e}")
 
@@ -150,32 +241,27 @@ class StudentBackend:
     def set_user_role(self, username, role):
         normalized_role = self.normalize_role(role)
         try:
-            with sqlite3.connect(self.db_name) as conn:
-                conn.execute(
-                    "INSERT OR REPLACE INTO user_roles (username, role) VALUES (?, ?)",
-                    (username, normalized_role)
-                )
+            self._execute(
+                "INSERT OR REPLACE INTO user_roles (username, role) VALUES (?, ?)",
+                (username, normalized_role),
+            )
         except Exception as e:
             print(f"Error updating role: {e}")
 
     def get_user_role(self, username):
         try:
-            with sqlite3.connect(self.db_name) as conn:
-                cursor = conn.execute("SELECT role FROM user_roles WHERE username = ?", (username,))
-                row = cursor.fetchone()
-                if row:
-                    return self.normalize_role(row[0])
+            row = self._execute("SELECT role FROM user_roles WHERE username = ?", (username,), fetch="one")
+            if row:
+                return self.normalize_role(row[0])
         except Exception as e:
             print(f"Error reading role: {e}")
         return "Counsellor"
 
     def get_user_role_record(self, username):
         try:
-            with sqlite3.connect(self.db_name) as conn:
-                cursor = conn.execute("SELECT role FROM user_roles WHERE username = ?", (username,))
-                row = cursor.fetchone()
-                if row:
-                    return self.normalize_role(row[0])
+            row = self._execute("SELECT role FROM user_roles WHERE username = ?", (username,), fetch="one")
+            if row:
+                return self.normalize_role(row[0])
         except Exception as e:
             print(f"Error reading role record: {e}")
         return None
@@ -183,12 +269,11 @@ class StudentBackend:
     def list_user_roles(self):
         users = []
         try:
-            with sqlite3.connect(self.db_name) as conn:
-                cursor = conn.execute("SELECT username FROM users ORDER BY username")
-                for row in cursor.fetchall():
-                    username = row[0]
-                    role = self.get_user_role(username)
-                    users.append({"username": username, "role": role})
+            rows = self._execute("SELECT username FROM users ORDER BY username", fetch="all") or []
+            for row in rows:
+                username = row[0]
+                role = self.get_user_role(username)
+                users.append({"username": username, "role": role})
         except Exception as e:
             print(f"Error listing users: {e}")
         return users
@@ -196,23 +281,20 @@ class StudentBackend:
     # --- STUDENT METHODS ---
     def upsert_student(self, student_id, data_dict):
         encrypted_blob = self._encrypt(data_dict)
-        with sqlite3.connect(self.db_name) as conn:
-            conn.execute(
-                "INSERT OR REPLACE INTO students (student_id, encrypted_data) VALUES (?, ?)",
-                (student_id, encrypted_blob)
-            )
+        self._execute(
+            "INSERT OR REPLACE INTO students (student_id, encrypted_data) VALUES (?, ?)",
+            (student_id, encrypted_blob),
+        )
 
     def delete_student(self, student_id):
-        with sqlite3.connect(self.db_name) as conn:
-            conn.execute("DELETE FROM students WHERE student_id = ?", (student_id,))
+        self._execute("DELETE FROM students WHERE student_id = ?", (student_id,))
 
     def get_all_students_list(self):
         students = []
         try:
-            with sqlite3.connect(self.db_name) as conn:
-                cursor = conn.execute("SELECT encrypted_data FROM students")
-                for row in cursor.fetchall():
-                    students.append(self._decrypt(row[0]))
+            rows = self._execute("SELECT encrypted_data FROM students", fetch="all") or []
+            for row in rows:
+                students.append(self._decrypt(row[0]))
         except Exception as e:
             print(f"Error loading students: {e}")
         return students
@@ -227,23 +309,25 @@ class StudentBackend:
     def add_custom_option(self, category, value):
         try:
             encrypted_val = self.cipher.encrypt(value.encode())
-            with sqlite3.connect(self.db_name) as conn:
-                conn.execute(
-                    "INSERT OR IGNORE INTO custom_options (category, encrypted_value) VALUES (?, ?)",
-                    (category, encrypted_val)
-                )
+            self._execute(
+                "INSERT OR IGNORE INTO custom_options (category, encrypted_value) VALUES (?, ?)",
+                (category, encrypted_val),
+            )
         except Exception as e:
             print(f"Error saving custom option: {e}")
 
     def get_custom_options(self, category):
         try:
-            with sqlite3.connect(self.db_name) as conn:
-                cursor = conn.execute("SELECT encrypted_value FROM custom_options WHERE category = ?", (category,))
-                decrypted_options = []
-                for row in cursor.fetchall():
-                    decrypted_options.append(self.cipher.decrypt(bytes(row[0])).decode())
-                decrypted_options.sort()
-                return decrypted_options
+            rows = self._execute(
+                "SELECT encrypted_value FROM custom_options WHERE category = ?",
+                (category,),
+                fetch="all",
+            ) or []
+            decrypted_options = []
+            for row in rows:
+                decrypted_options.append(self.cipher.decrypt(bytes(row[0])).decode())
+            decrypted_options.sort()
+            return decrypted_options
         except Exception as e:
             print(f"Error loading custom options: {e}")
             return []
@@ -253,11 +337,10 @@ class StudentBackend:
         try:
             salt = secrets.token_bytes(16)
             pwd_hash = hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 100_000)
-            with sqlite3.connect(self.db_name) as conn:
-                conn.execute(
-                    "INSERT OR REPLACE INTO users (username, password_hash, salt) VALUES (?, ?, ?)",
-                    (username, pwd_hash, salt)
-                )
+            self._execute(
+                "INSERT OR REPLACE INTO users (username, password_hash, salt) VALUES (?, ?, ?)",
+                (username, pwd_hash, salt),
+            )
             default_role = "ADMIN" if not self.has_registered_user() else "Counsellor"
             self.set_user_role(username, default_role)
         except Exception as e:
@@ -266,11 +349,10 @@ class StudentBackend:
     def set_google_login(self, username, display_name):
         try:
             existing_role = self.get_user_role_record(username)
-            with sqlite3.connect(self.db_name) as conn:
-                conn.execute(
-                    "INSERT OR REPLACE INTO users (username, password_hash, salt) VALUES (?, ?, ?)",
-                    (username, b"google", b"google")
-                )
+            self._execute(
+                "INSERT OR REPLACE INTO users (username, password_hash, salt) VALUES (?, ?, ?)",
+                (username, b"google", b"google"),
+            )
 
             if username.lower() == ADMIN_USERNAME.lower():
                 self.set_user_role(username, "ADMIN")

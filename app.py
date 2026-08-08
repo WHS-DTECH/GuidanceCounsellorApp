@@ -1,5 +1,6 @@
 import os
 import time
+import hashlib
 from flask import Flask, request, redirect, session, url_for, render_template_string
 
 from database import StudentBackend
@@ -66,9 +67,46 @@ def inject_global_layout_bits():
 
 
 def students_for_role(role):
+    def mask_value(value):
+        text = str(value or "").strip()
+        if not text:
+            return ""
+        digest = hashlib.sha256(text.encode("utf-8")).hexdigest()[:10].upper()
+        return f"ENC-{digest}"
+
+    def mask_student(student):
+        masked = dict(student)
+        for key in [
+            "full_name",
+            "preferred_name",
+            "dob",
+            "gender",
+            "ethnicity",
+            "address",
+            "phone",
+            "referral_type",
+            "whanau",
+            "care_giver",
+            "notes",
+            "classification",
+            "current_year_level",
+            "year_level",
+            "preferred_pronoun",
+            "session_type",
+        ]:
+            masked[key] = mask_value(masked.get(key, ""))
+        if isinstance(masked.get("sessions"), list):
+            masked["sessions"] = [mask_value(v) for v in masked.get("sessions", [])]
+        return masked
+
     if role == "AppBuilder":
         return backend.get_dummy_students(), "dummy dataset", False
-    return backend.get_all_students_list(), "live dataset", True
+
+    students = backend.get_all_students_list()
+    if role == "ADMIN":
+        return [mask_student(s) for s in students], "live dataset (masked)", False
+
+    return students, "live dataset", True
 
 
 def find_student_by_id(student_id):
@@ -202,10 +240,13 @@ def students():
     db_storage_label = ""
     if role == "ADMIN":
         db_path = backend.db_name
-        env_override = bool((os.getenv("STUDENT_DB_PATH") or os.getenv("DATABASE_PATH") or "").strip())
-        normalized_path = str(db_path).replace("\\", "/")
-        is_persistent = env_override or normalized_path.startswith("/var/data/")
-        db_storage_label = "Persistent disk" if is_persistent else "Container/local disk"
+        if getattr(backend, "storage_kind", "sqlite") == "postgresql":
+            db_storage_label = "Managed PostgreSQL"
+        else:
+            env_override = bool((os.getenv("STUDENT_DB_PATH") or os.getenv("DATABASE_PATH") or "").strip())
+            normalized_path = str(db_path).replace("\\", "/")
+            is_persistent = env_override or normalized_path.startswith("/var/data/")
+            db_storage_label = "Persistent disk" if is_persistent else "Container/local disk"
 
     return render_search_page(
         students=filtered,
@@ -245,15 +286,16 @@ def students_edit():
         return redirect(url_for("index"))
 
     role = current_role()
-    if role == "AppBuilder":
+    if role != "Counsellor":
+        all_students, data_label, can_edit = students_for_role(role)
         return render_search_page(
-            students=filter_students(backend.get_dummy_students(), ""),
+            students=filter_students(all_students, ""),
             query="",
             role=role,
-            data_label="dummy dataset",
-            is_admin=False,
-            can_edit=False,
-            message="AppBuilder does not have write access to live student data.",
+            data_label=data_label,
+            is_admin=(role == "ADMIN"),
+            can_edit=can_edit,
+            message="Only Counsellor role can view or edit plaintext student records.",
             global_navbar=current_global_navbar(),
         )
 
@@ -288,6 +330,10 @@ def student_profile():
     if not login_required():
         return redirect(url_for("index"))
 
+    role = current_role()
+    if role != "Counsellor":
+        return redirect(url_for("students", sync_result="Only Counsellor role can open plaintext student profiles."))
+
     requested_id = (request.args.get("student_id") or "").strip()
     if not requested_id:
         return redirect(url_for("students"))
@@ -296,9 +342,7 @@ def student_profile():
     if not student:
         return redirect(url_for("students", sync_result="Student not found."))
 
-    role = current_role()
-    can_edit = role != "AppBuilder"
-    return render_profile_page(student, can_edit=can_edit, global_navbar=current_global_navbar())
+    return render_profile_page(student, can_edit=True, global_navbar=current_global_navbar())
 
 
 @app.route("/students/sessions")
@@ -306,6 +350,10 @@ def student_sessions():
     if not login_required():
         return redirect(url_for("index"))
 
+    role = current_role()
+    if role != "Counsellor":
+        return redirect(url_for("students", sync_result="Only Counsellor role can open plaintext session details."))
+
     requested_id = (request.args.get("student_id") or "").strip()
     if not requested_id:
         return redirect(url_for("students"))
@@ -314,15 +362,13 @@ def student_sessions():
     if not student:
         return redirect(url_for("students", sync_result="Student not found."))
 
-    role = current_role()
-    can_edit = role != "AppBuilder"
     query = (request.args.get("q") or "").strip()
     mode = (request.args.get("mode") or "date").strip().lower()
     if mode not in {"date", "referral"}:
         mode = "date"
     return render_sessions_page(
         student,
-        can_edit=can_edit,
+        can_edit=True,
         query=query,
         mode=mode,
         global_navbar=current_global_navbar(),

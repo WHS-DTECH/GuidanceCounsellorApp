@@ -139,7 +139,9 @@ SEARCH_TEMPLATE = """
                 <td>{{ s.get('referral_type', '') }}</td>
                 <td>{{ s.get('sessions', [])|length }}</td>
                 <td class="row-actions">
+                  {% if can_edit %}
                   <a href="/students/edit?student_id={{ s.get('student_id', '') }}">Edit</a>
+                  {% endif %}
                   {% if can_edit %}
                   <form method="post" action="/students/delete" class="inline" onsubmit="return confirm('Delete this student?');">
                     <input type="hidden" name="student_id" value="{{ s.get('student_id', '') }}">
