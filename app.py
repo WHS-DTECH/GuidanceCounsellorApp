@@ -217,6 +217,8 @@ def admin_sync_spreadsheets():
     result = sync_spreadsheet_folder(sync_folder, backend)
 
     summary = f"Sync complete: {result['imported']} imported, {result['skipped']} skipped."
+    if result.get("files"):
+        summary = summary + " " + " | ".join(result["files"][:2])
     return redirect(url_for("students", sync_result=summary))
 
 

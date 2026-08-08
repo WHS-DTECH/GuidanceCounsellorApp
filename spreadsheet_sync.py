@@ -170,23 +170,43 @@ def parse_student_workbook(path):
 
 def sync_spreadsheet_folder(folder_path, backend):
     if not os.path.isdir(folder_path):
-        return {"imported": 0, "skipped": 0, "files": []}
+        return {
+            "imported": 0,
+            "skipped": 0,
+            "files": [f"Folder not found: {folder_path}"],
+        }
 
     imported = 0
     skipped = 0
     details = []
 
-    for name in sorted(os.listdir(folder_path)):
-        if not name.lower().endswith(".xlsx"):
-            continue
+    xlsx_files = [name for name in sorted(os.listdir(folder_path)) if name.lower().endswith(".xlsx")]
+    if not xlsx_files:
+        return {
+            "imported": 0,
+            "skipped": 0,
+            "files": [f"No .xlsx files found in {folder_path}"],
+        }
+
+    for name in xlsx_files:
         full_path = os.path.join(folder_path, name)
-        parsed = parse_student_workbook(full_path)
+        try:
+            parsed = parse_student_workbook(full_path)
+        except Exception as exc:
+            skipped += 1
+            details.append(f"Skipped {name}: {exc}")
+            continue
         if not parsed:
             skipped += 1
             details.append(f"Skipped {name}: unsupported structure")
             continue
 
-        backend.upsert_student(parsed["student_id"], parsed)
+        try:
+            backend.upsert_student(parsed["student_id"], parsed)
+        except Exception as exc:
+            skipped += 1
+            details.append(f"Skipped {name}: database error ({exc})")
+            continue
         imported += 1
         details.append(f"Imported {name} -> {parsed['student_id']}")
 
