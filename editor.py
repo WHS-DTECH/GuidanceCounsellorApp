@@ -381,7 +381,7 @@ PROFILE_TEMPLATE = """
       .app-shell {
         display: grid;
         grid-template-columns: 300px 1fr;
-        min-height: calc(100vh - 52px);
+        min-height: calc(100vh - 52px - 1.5cm);
       }
       .sidebar {
         background: var(--nav-bg);
@@ -643,7 +643,18 @@ SESSIONS_TEMPLATE = """
         margin-bottom: 10px;
       }
       .card-title { margin: 0; font-size: 18px; }
+      .card-meta {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
       .meta { color: var(--muted); font-size: 14px; }
+      .color-link {
+        color: var(--blue);
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 14px;
+      }
       .session-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -655,6 +666,12 @@ SESSIONS_TEMPLATE = """
         color: var(--muted);
         font-size: 13px;
       }
+      .value-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 10px;
+      }
       .value {
         min-height: 38px;
         border: 1px solid var(--line);
@@ -662,6 +679,12 @@ SESSIONS_TEMPLATE = """
         background: #f9fbff;
         padding: 8px 10px;
         font-size: 16px;
+      }
+      .select-action {
+        color: var(--blue);
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 14px;
       }
       .notes {
         margin-top: 10px;
@@ -692,10 +715,14 @@ SESSIONS_TEMPLATE = """
         .search { font-size: 18px; }
         .save-btn { font-size: 18px; text-align: center; }
         .card-title { font-size: 24px; }
+        .card-meta { gap: 10px; }
         .meta { font-size: 16px; }
+        .color-link { font-size: 14px; }
         .session-grid { grid-template-columns: 1fr; }
         .field label { font-size: 14px; }
+        .value-row { grid-template-columns: 1fr auto; }
         .value, .notes { font-size: 18px; }
+        .select-action { font-size: 14px; }
       }
     </style>
   </head>
@@ -731,20 +758,32 @@ SESSIONS_TEMPLATE = """
           <section class="card">
             <div class="card-head">
               <h2 class="card-title">{{ row.display_date }} - Session Record</h2>
-              <div class="meta">Year Level: {{ row.year_level }}</div>
+              <div class="card-meta">
+                <a class="color-link" href="#">🎨 Color ▾</a>
+                <div class="meta">Year Level: {{ row.year_level }}</div>
+              </div>
             </div>
             <div class="session-grid">
               <div class="field">
                 <label>Session Type</label>
-                <div class="value">{{ row.session_type }}</div>
+                <div class="value-row">
+                  <div class="value">{{ row.session_type }}</div>
+                  <a class="select-action" href="#">Select ▾</a>
+                </div>
               </div>
               <div class="field">
                 <label>Classification</label>
-                <div class="value">{{ row.classification }}</div>
+                <div class="value-row">
+                  <div class="value">{{ row.classification }}</div>
+                  <a class="select-action" href="#">Select ▾</a>
+                </div>
               </div>
               <div class="field">
                 <label>Referral Type</label>
-                <div class="value">{{ row.referral_type }}</div>
+                <div class="value-row">
+                  <div class="value">{{ row.referral_type }}</div>
+                  <a class="select-action" href="#">Select ▾</a>
+                </div>
               </div>
             </div>
             <div class="field" style="margin-top:10px;">
