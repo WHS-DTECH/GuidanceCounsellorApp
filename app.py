@@ -198,6 +198,15 @@ def students():
     else:
         message = base_message
 
+    db_path = ""
+    db_storage_label = ""
+    if role == "ADMIN":
+        db_path = backend.db_name
+        env_override = bool((os.getenv("STUDENT_DB_PATH") or os.getenv("DATABASE_PATH") or "").strip())
+        normalized_path = str(db_path).replace("\\", "/")
+        is_persistent = env_override or normalized_path.startswith("/var/data/")
+        db_storage_label = "Persistent disk" if is_persistent else "Container/local disk"
+
     return render_search_page(
         students=filtered,
         query=query,
@@ -207,6 +216,8 @@ def students():
         can_edit=can_edit,
         message=message,
         global_navbar=current_global_navbar(),
+        db_path=db_path,
+        db_storage_label=db_storage_label,
     )
 
 

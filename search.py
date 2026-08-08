@@ -103,6 +103,9 @@ SEARCH_TEMPLATE = """
           </div>
 
           <p class="muted">Role: {{ role }} | Data source: {{ data_label }}</p>
+          {% if is_admin and db_path %}
+          <p class="muted">DB Storage: {{ db_storage_label }} | DB Path: {{ db_path }}</p>
+          {% endif %}
 
           {% if message %}<p class="danger">{{ message }}</p>{% endif %}
 
@@ -170,7 +173,18 @@ def filter_students(students, query):
     return filtered
 
 
-def render_search_page(students, query, role, data_label, is_admin=False, can_edit=True, message=None, global_navbar=""):
+def render_search_page(
+  students,
+  query,
+  role,
+  data_label,
+  is_admin=False,
+  can_edit=True,
+  message=None,
+  global_navbar="",
+  db_path="",
+  db_storage_label="",
+):
     return render_template_string(
         SEARCH_TEMPLATE,
         students=students,
@@ -181,4 +195,6 @@ def render_search_page(students, query, role, data_label, is_admin=False, can_ed
         can_edit=can_edit,
         message=message,
     global_navbar=global_navbar,
+    db_path=db_path,
+    db_storage_label=db_storage_label,
     )
