@@ -69,64 +69,65 @@ DASHBOARD_WEB_TEMPLATE = """
       }
 
       .main {
-        padding: 34px 40px;
+        padding: 24px 30px;
       }
-      .title { margin: 0; font-size: 56px; letter-spacing: 0.2px; font-weight: 800; }
-      .meta { color: var(--muted); margin: 6px 0; font-size: 17px; }
-      .logout-line { margin-top: 10px; }
+      .title { margin: 0; font-size: 44px; letter-spacing: 0.2px; font-weight: 800; }
+      .meta { color: var(--muted); margin: 4px 0; font-size: 14px; }
+      .logout-line { margin-top: 6px; font-size: 14px; }
       .logout-line a { color: #334155; }
 
       .stats {
-        margin-top: 22px;
+        margin-top: 16px;
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 18px;
+        gap: 14px;
       }
       .card {
         background: var(--card);
         border-radius: 18px;
-        padding: 24px;
+        padding: 18px;
         box-shadow: 0 10px 20px rgba(15, 23, 42, 0.05);
       }
-      .stat-label { color: #a1a6b0; font-size: 16px; }
-      .stat-value { font-size: 52px; font-weight: 800; margin-top: 8px; line-height: 1; }
+      .stat-label { color: #a1a6b0; font-size: 14px; }
+      .stat-value { font-size: 40px; font-weight: 800; margin-top: 6px; line-height: 1; }
 
       .charts {
-        margin-top: 20px;
+        margin-top: 14px;
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 18px;
+        gap: 14px;
       }
-      .chart-card h3 { margin-top: 0; margin-bottom: 14px; font-size: 42px; }
+      .chart-card h3 { margin-top: 0; margin-bottom: 10px; font-size: 32px; }
       .chart-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 12px;
+        margin-bottom: 8px;
       }
 
       .dropdown-pill {
-        padding: 8px 12px;
+        padding: 6px 10px;
         border-radius: 10px;
         border: 1px solid #dbe3ef;
         background: #ffffff;
         color: #3a78e8;
         font-weight: 700;
+        font-size: 14px;
       }
 
-      .distribution-list { margin-top: 6px; }
-      .distribution-row { margin-bottom: 24px; }
+      .distribution-list { margin-top: 4px; }
+      .distribution-row { margin-bottom: 16px; }
       .distribution-top {
         display: flex;
         justify-content: space-between;
         align-items: baseline;
         margin-bottom: 8px;
       }
-      .distribution-name { font-size: 34px; }
-      .distribution-meta { color: #9ca3af; font-size: 14px; }
+      .distribution-name { font-size: 20px; }
+      .distribution-meta { color: #9ca3af; font-size: 12px; }
       .distribution-track {
         width: 100%;
-        height: 16px;
+        height: 12px;
         background: #dbe3ef;
         border-radius: 999px;
       }
@@ -140,7 +141,7 @@ DASHBOARD_WEB_TEMPLATE = """
         display: flex;
         gap: 8px;
         flex-wrap: wrap;
-        margin-bottom: 14px;
+        margin-bottom: 10px;
       }
       .export-btn {
         display: inline-block;
@@ -148,18 +149,19 @@ DASHBOARD_WEB_TEMPLATE = """
         color: #fff;
         text-decoration: none;
         font-weight: 700;
-        padding: 10px 14px;
+        padding: 8px 12px;
         border-radius: 999px;
+        font-size: 14px;
       }
       .timeline-area {
-        margin-top: 18px;
-        min-height: 320px;
+        margin-top: 12px;
+        min-height: 220px;
         border-top: 1px solid #dde3ec;
         display: grid;
         grid-template-columns: repeat(12, minmax(0, 1fr));
-        gap: 12px;
+        gap: 10px;
         align-items: end;
-        padding-top: 18px;
+        padding-top: 12px;
       }
       .timeline-col {
         display: flex;
@@ -168,14 +170,14 @@ DASHBOARD_WEB_TEMPLATE = """
         justify-content: end;
       }
       .timeline-bar {
-        width: 28px;
+        width: 22px;
         border-radius: 8px;
         background: var(--green);
       }
       .timeline-label {
-        margin-top: 8px;
+        margin-top: 6px;
         color: #8090a7;
-        font-size: 13px;
+        font-size: 11px;
         font-weight: 700;
       }
 
@@ -188,8 +190,8 @@ DASHBOARD_WEB_TEMPLATE = """
 
       @media (max-width: 700px) {
         .main { padding: 18px 14px; }
-        .title { font-size: 34px; }
-        .chart-card h3 { font-size: 28px; }
+        .title { font-size: 30px; }
+        .chart-card h3 { font-size: 24px; }
         .stat-value { font-size: 34px; }
         .distribution-name { font-size: 18px; }
         .timeline-bar { width: 18px; }
