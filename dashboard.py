@@ -206,7 +206,7 @@ DASHBOARD_WEB_TEMPLATE = """
         <a class="nav-link active" href="/dashboard">DASHBOARD</a>
         <a class="nav-link secondary" href="/students">STUDENTS</a>
         <div class="sidebar-footer">
-          <a class="session-btn" href="/students/edit">NEW SESSION</a>
+          <a class="session-btn" href="/students/sessions/new">NEW SESSION</a>
         </div>
       </aside>
 

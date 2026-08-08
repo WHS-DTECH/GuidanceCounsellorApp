@@ -396,6 +396,25 @@ def student_sessions():
     )
 
 
+@app.route("/students/sessions/new")
+def student_sessions_new():
+    if not login_required():
+        return redirect(url_for("index"))
+
+    role = current_role()
+    if role != "Counsellor":
+        return redirect(url_for("students", sync_result="Only Counsellor role can open plaintext session details."))
+
+    return render_sessions_page(
+        build_empty_student(""),
+        can_edit=True,
+        query="",
+        mode="date",
+        global_navbar=current_global_navbar(),
+        create_blank_card=True,
+    )
+
+
 @app.route("/students/delete", methods=["POST"])
 def students_delete():
     if not login_required():

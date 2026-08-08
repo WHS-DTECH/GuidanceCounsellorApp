@@ -841,7 +841,7 @@ def _session_notes_for_date(student_notes, iso_session):
     return "\n".join(lines[:2])
 
 
-def render_sessions_page(student, can_edit=False, query="", mode="date", global_navbar=""):
+def render_sessions_page(student, can_edit=False, query="", mode="date", global_navbar="", create_blank_card=False):
     raw_sessions = sorted(student.get("sessions", []), reverse=True)
     rows = []
     for session_value in raw_sessions:
@@ -857,6 +857,20 @@ def render_sessions_page(student, can_edit=False, query="", mode="date", global_
             "notes": _session_notes_for_date(student.get("notes", ""), session_value),
         }
         rows.append(row)
+
+    if create_blank_card and not rows:
+        rows.append(
+            {
+                "iso": "",
+                "display_date": "New",
+                "display_time": "",
+                "session_type": "",
+                "classification": "",
+                "referral_type": "",
+                "year_level": "",
+                "notes": "",
+            }
+        )
 
     q = (query or "").strip().lower()
     if q:
