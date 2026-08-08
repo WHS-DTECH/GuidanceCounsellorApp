@@ -177,7 +177,7 @@ EDITOR_TEMPLATE = """
 
       <main class="content">
         <h1 class="page-title">{{ page_title }}</h1>
-        <div class="toolbar"><a href="/students">Back to Students</a> | <a href="/dashboard">Dashboard</a> | <a href="/logout">Logout</a></div>
+        <div class="toolbar"><a href="/students">Back to Students</a> | <a href="/dashboard">Dashboard</a> | <a href="/students/sync-spreadsheets">Sync Spreadsheets</a> | <a href="/logout">Logout</a></div>
         {% if message %}<p class="msg">{{ message }}</p>{% endif %}
 
         <form method="post" action="/students/edit">

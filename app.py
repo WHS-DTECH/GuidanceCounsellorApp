@@ -1,6 +1,7 @@
 import os
 import time
 import hashlib
+import datetime
 from flask import Flask, request, redirect, session, url_for, render_template_string
 
 from database import StudentBackend, ADMIN_USERNAME
@@ -114,6 +115,22 @@ def find_student_by_id(student_id):
         if student.get("student_id") == student_id:
             return student
     return None
+
+
+def spreadsheet_upload_root():
+    configured = (os.getenv("SPREADSHEET_UPLOAD_DIR") or "").strip()
+    if configured:
+        os.makedirs(configured, exist_ok=True)
+        return configured
+
+    persistent_dir = "/var/data/spreadsheet_uploads"
+    if os.path.isdir("/var/data"):
+        os.makedirs(persistent_dir, exist_ok=True)
+        return persistent_dir
+
+    local_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ClientSSUploads")
+    os.makedirs(local_dir, exist_ok=True)
+    return local_dir
 
 
 @app.route("/")
@@ -420,6 +437,176 @@ def student_sessions_new():
         global_navbar=current_global_navbar(),
         create_blank_card=True,
     )
+
+
+@app.route("/students/sync-spreadsheets", methods=["GET", "POST"])
+def students_sync_spreadsheets_page():
+        if not login_required():
+                return redirect(url_for("index"))
+
+        role = current_role()
+        if role not in {"ADMIN", "Counsellor", "AppBuilder"}:
+                return redirect(url_for("dashboard"))
+
+        message = ""
+        now_text = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        if request.method == "POST":
+                action = (request.form.get("action") or "").strip()
+
+                if action == "upload_folder":
+                        folder_alias = (request.form.get("folder_alias") or "").strip() or "Uploaded Folder"
+                        upload_files = request.files.getlist("spreadsheet_files")
+                        xlsx_files = []
+                        for file_obj in upload_files:
+                                file_name = (file_obj.filename or "").strip()
+                                if not file_name:
+                                        continue
+                                if file_name.lower().endswith(".xlsx"):
+                                        xlsx_files.append(file_obj)
+
+                        if not xlsx_files:
+                                message = "No .xlsx files selected."
+                        else:
+                                upload_root = spreadsheet_upload_root()
+                                folder_key = f"folder-{int(time.time())}"
+                                target_dir = os.path.join(upload_root, folder_key)
+                                os.makedirs(target_dir, exist_ok=True)
+
+                                first_name = (xlsx_files[0].filename or "")
+                                if "/" in first_name:
+                                        candidate = first_name.split("/")[0].strip()
+                                        if candidate:
+                                                folder_alias = candidate
+                                elif "\\" in first_name:
+                                        candidate = first_name.split("\\")[0].strip()
+                                        if candidate:
+                                                folder_alias = candidate
+
+                                saved_count = 0
+                                for file_obj in xlsx_files:
+                                        incoming_name = (file_obj.filename or "").replace("\\", "/")
+                                        clean_name = os.path.basename(incoming_name)
+                                        stored_name = f"{int(time.time()*1000)}-{clean_name}"
+                                        file_path = os.path.join(target_dir, stored_name)
+                                        file_obj.save(file_path)
+                                        backend.record_spreadsheet_upload(clean_name, stored_name, folder_alias, now_text)
+                                        saved_count += 1
+
+                                backend.set_sync_config("spreadsheet_folder_label", folder_alias, now_text)
+                                backend.set_sync_config("spreadsheet_folder_path", target_dir, now_text)
+                                message = f"Uploaded {saved_count} spreadsheet file(s). Stored folder link updated."
+
+                elif action == "run_sync":
+                        folder_path = backend.get_sync_config("spreadsheet_folder_path").get("value", "")
+                        if not folder_path:
+                                message = "No stored folder link found. Upload spreadsheets first."
+                        else:
+                                result = sync_spreadsheet_folder(folder_path, backend)
+                                message = f"Sync complete: {result['imported']} imported, {result['skipped']} skipped."
+                                if result.get("files"):
+                                        message += " " + " | ".join(result["files"][:3])
+
+        folder_label_info = backend.get_sync_config("spreadsheet_folder_label")
+        folder_path_info = backend.get_sync_config("spreadsheet_folder_path")
+        uploads = backend.list_spreadsheet_uploads(200)
+
+        return render_template_string(
+                """
+                <!doctype html>
+                <html>
+                    <head>
+                        <meta charset="utf-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1">
+                        <title>Sync Spreadsheets</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; margin: 0; background: #eef1f7; color: #1a243b; }
+                            .page { max-width: 1100px; margin: 20px auto; padding: 0 14px 20px; }
+                            .card { background:#fff; border-radius:14px; padding:18px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
+                            .toolbar a { margin-right: 8px; color: #3b5d8b; }
+                            .row { margin-top: 14px; }
+                            label { display:block; margin-bottom:6px; color:#5b677e; }
+                            input[type='text'], input[type='file'] { width: 100%; padding: 10px; border:1px solid #d8e1ef; border-radius:8px; }
+                            button { margin-top: 10px; padding: 10px 14px; border:0; border-radius: 8px; background:#1f2937; color:white; cursor:pointer; }
+                            .sync-btn { background:#0f766e; }
+                            .msg { margin-top: 10px; color: #b91c1c; }
+                            .ok { margin-top: 10px; color: #065f46; }
+                            table { width:100%; border-collapse: collapse; margin-top: 12px; }
+                            th, td { border-bottom: 1px solid #e5e7eb; text-align:left; padding: 9px; font-size: 14px; }
+                            .muted { color:#6b7280; font-size: 14px; }
+                        </style>
+                    </head>
+                    <body>
+                        {{ global_navbar|safe }}
+                        <div class="page">
+                            <div class="card">
+                                <h1>Sync Spreadsheets</h1>
+                                <div class="toolbar"><a href="/students/edit">Back to Add Student</a> | <a href="/students">Students</a> | <a href="/dashboard">Dashboard</a></div>
+
+                                <p class="muted">Role: {{ role }}</p>
+                                {% if message %}<p class="ok">{{ message }}</p>{% endif %}
+
+                                <div class="row">
+                                    <h3>1. Upload Folder Files</h3>
+                                    <form method="post" enctype="multipart/form-data">
+                                        <input type="hidden" name="action" value="upload_folder">
+                                        <label>Folder Label (optional)</label>
+                                        <input type="text" name="folder_alias" placeholder="e.g. Term 3 Referrals">
+                                        <label style="margin-top:10px;">Browse Folder (.xlsx files)</label>
+                                        <input type="file" name="spreadsheet_files" multiple webkitdirectory directory accept=".xlsx">
+                                        <button type="submit">Store Folder Link</button>
+                                    </form>
+                                </div>
+
+                                <div class="row">
+                                    <h3>2. Stored Folder Link</h3>
+                                    <p class="muted">Label: {{ folder_label }}</p>
+                                    <p class="muted">Path: {{ folder_path }}</p>
+                                    <p class="muted">Updated: {{ folder_updated_at }}</p>
+                                    <form method="post">
+                                        <input type="hidden" name="action" value="run_sync">
+                                        <button class="sync-btn" type="submit">Run Sync Spreadsheets</button>
+                                    </form>
+                                </div>
+
+                                <div class="row">
+                                    <h3>Uploaded Spreadsheet Files</h3>
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>File Name</th>
+                                                <th>Folder Label</th>
+                                                <th>Upload Date/Time</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for item in uploads %}
+                                            <tr>
+                                                <td>{{ item.file_name }}</td>
+                                                <td>{{ item.folder_label }}</td>
+                                                <td>{{ item.uploaded_at }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                            {% if not uploads %}
+                                            <tr><td colspan="3">No uploads recorded yet.</td></tr>
+                                            {% endif %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        {{ global_footer|safe }}
+                    </body>
+                </html>
+                """,
+                role=role,
+                message=message,
+                folder_label=folder_label_info.get("value", ""),
+                folder_path=folder_path_info.get("value", ""),
+                folder_updated_at=folder_path_info.get("updated_at", ""),
+                uploads=uploads,
+                global_navbar=current_global_navbar(),
+        )
 
 
 @app.route("/students/delete", methods=["POST"])

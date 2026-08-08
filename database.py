@@ -112,6 +112,25 @@ class StudentBackend:
                 )
             """
         )
+        self._execute(
+            """
+                CREATE TABLE IF NOT EXISTS spreadsheet_sync_config (
+                    config_key TEXT PRIMARY KEY,
+                    config_value TEXT,
+                    updated_at TEXT
+                )
+            """
+        )
+        self._execute(
+            """
+                CREATE TABLE IF NOT EXISTS spreadsheet_uploads (
+                    original_name TEXT,
+                    stored_name TEXT,
+                    folder_label TEXT,
+                    uploaded_at TEXT
+                )
+            """
+        )
 
         self.ensure_admin_account()
 
@@ -161,6 +180,13 @@ class StudentBackend:
             return (
                 "INSERT INTO custom_options (category, encrypted_value) VALUES (%s, %s) "
                 "ON CONFLICT (category, encrypted_value) DO NOTHING"
+            )
+
+        if normalized.startswith("INSERT OR REPLACE INTO spreadsheet_sync_config"):
+            return (
+                "INSERT INTO spreadsheet_sync_config (config_key, config_value, updated_at) VALUES (%s, %s, %s) "
+                "ON CONFLICT (config_key) DO UPDATE SET "
+                "config_value = EXCLUDED.config_value, updated_at = EXCLUDED.updated_at"
             )
 
         return query
@@ -366,3 +392,41 @@ class StudentBackend:
                 self.set_user_role(username, "Counsellor")
         except Exception as e:
             print(f"Error storing Google login: {e}")
+
+    # --- SPREADSHEET UPLOAD/SYNC CONFIG ---
+    def set_sync_config(self, key, value, updated_at):
+        self._execute(
+            "INSERT OR REPLACE INTO spreadsheet_sync_config (config_key, config_value, updated_at) VALUES (?, ?, ?)",
+            (key, value, updated_at),
+        )
+
+    def get_sync_config(self, key):
+        row = self._execute(
+            "SELECT config_value, updated_at FROM spreadsheet_sync_config WHERE config_key = ?",
+            (key,),
+            fetch="one",
+        )
+        if not row:
+            return {"value": "", "updated_at": ""}
+        return {"value": row[0] or "", "updated_at": row[1] or ""}
+
+    def record_spreadsheet_upload(self, original_name, stored_name, folder_label, uploaded_at):
+        self._execute(
+            "INSERT INTO spreadsheet_uploads (original_name, stored_name, folder_label, uploaded_at) VALUES (?, ?, ?, ?)",
+            (original_name, stored_name, folder_label, uploaded_at),
+        )
+
+    def list_spreadsheet_uploads(self, limit=200):
+        rows = self._execute(
+            "SELECT original_name, folder_label, uploaded_at FROM spreadsheet_uploads ORDER BY uploaded_at DESC LIMIT ?",
+            (limit,),
+            fetch="all",
+        ) or []
+        return [
+            {
+                "file_name": row[0] or "",
+                "folder_label": row[1] or "",
+                "uploaded_at": row[2] or "",
+            }
+            for row in rows
+        ]
