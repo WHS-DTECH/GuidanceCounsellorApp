@@ -307,9 +307,18 @@ def students_edit():
 
     role = current_role()
     if role != "Counsellor":
-        # Non-counsellor users may open a blank form, but cannot view or save live records.
+        # Non-counsellor users may open blank forms and save new test records,
+        # but they cannot open or overwrite existing live records.
         if request.method == "POST":
-            return redirect(url_for("students", sync_result="Only Counsellor role can save student records."))
+            requested_id = (request.form.get("student_id") or "").strip()
+            if requested_id and find_student_by_id(requested_id):
+                return redirect(url_for("students", sync_result="Only Counsellor role can edit existing student records."))
+
+            student_id = requested_id or f"ST-{int(time.time())}"
+            payload = normalize_student_payload(request.form, existing_student_id=student_id)
+            payload["student_id"] = student_id
+            backend.upsert_student(student_id, payload)
+            return redirect(url_for("students", sync_result="Saved new test student record."))
 
         requested_id = (request.args.get("student_id") or "").strip()
         if requested_id:
@@ -317,7 +326,7 @@ def students_edit():
 
         return render_editor_page(
             build_empty_student(""),
-            message="Blank form view only. Only Counsellor role can save student records.",
+            message="Blank form view. You can save new test records, but existing records are locked.",
             global_navbar=current_global_navbar(),
         )
 
