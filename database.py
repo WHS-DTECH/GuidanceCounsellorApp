@@ -360,9 +360,7 @@ class StudentBackend:
                 (username, b"google", b"google"),
             )
 
-            if username.lower() == ADMIN_USERNAME.lower():
-                self.set_user_role(username, "ADMIN")
-            elif existing_role:
+            if existing_role:
                 self.set_user_role(username, existing_role)
             else:
                 self.set_user_role(username, "Counsellor")
