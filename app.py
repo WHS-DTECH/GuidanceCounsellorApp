@@ -119,6 +119,8 @@ def find_student_by_id(student_id):
 @app.route("/")
 def index():
     if current_user():
+        if current_role() == "Counsellor":
+            return redirect(url_for("dashboard"))
         return render_login_page(
             user=current_user(),
             role=current_role(),

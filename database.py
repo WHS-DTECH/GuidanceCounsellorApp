@@ -221,10 +221,16 @@ class StudentBackend:
                     "INSERT INTO users (username, password_hash, salt) VALUES (?, ?, ?)",
                     (admin_username, pwd_hash, salt),
                 )
-            self._execute(
-                "INSERT OR REPLACE INTO user_roles (username, role) VALUES (?, ?)",
-                (admin_username, "ADMIN"),
+            role_row = self._execute(
+                "SELECT role FROM user_roles WHERE username = ?",
+                (admin_username,),
+                fetch="one",
             )
+            if role_row is None:
+                self._execute(
+                    "INSERT OR REPLACE INTO user_roles (username, role) VALUES (?, ?)",
+                    (admin_username, "ADMIN"),
+                )
         except Exception as e:
             print(f"Error creating admin account: {e}")
 
