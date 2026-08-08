@@ -6,7 +6,13 @@ from database import StudentBackend
 from dashboard import DASHBOARD_WEB_TEMPLATE, build_dashboard_context
 from login import render_login_page, render_register_page
 from search import filter_students, render_search_page
-from editor import build_empty_student, normalize_student_payload, render_editor_page, render_profile_page
+from editor import (
+    build_empty_student,
+    normalize_student_payload,
+    render_editor_page,
+    render_profile_page,
+    render_sessions_page,
+)
 from google_auth import build_google_auth_url, exchange_code_for_token, fetch_google_user_info
 from navbar import build_global_navbar
 from footer import build_global_footer
@@ -282,6 +288,34 @@ def student_profile():
     role = current_role()
     can_edit = role != "AppBuilder"
     return render_profile_page(student, can_edit=can_edit, global_navbar=current_global_navbar())
+
+
+@app.route("/students/sessions")
+def student_sessions():
+    if not login_required():
+        return redirect(url_for("index"))
+
+    requested_id = (request.args.get("student_id") or "").strip()
+    if not requested_id:
+        return redirect(url_for("students"))
+
+    student = find_student_by_id(requested_id)
+    if not student:
+        return redirect(url_for("students", sync_result="Student not found."))
+
+    role = current_role()
+    can_edit = role != "AppBuilder"
+    query = (request.args.get("q") or "").strip()
+    mode = (request.args.get("mode") or "date").strip().lower()
+    if mode not in {"date", "referral"}:
+        mode = "date"
+    return render_sessions_page(
+        student,
+        can_edit=can_edit,
+        query=query,
+        mode=mode,
+        global_navbar=current_global_navbar(),
+    )
 
 
 @app.route("/students/delete", methods=["POST"])

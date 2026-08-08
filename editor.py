@@ -497,7 +497,7 @@ PROFILE_TEMPLATE = """
               <div><strong>{{ session_count }}</strong> {% if latest_session %}<span style="margin-left:10px; color:var(--muted);">Latest: {{ latest_session }}</span>{% endif %}</div>
             </div>
             <a class="pill-btn green" href="/students/edit?student_id={{ student.get('student_id', '') }}">Add Session</a>
-            <a class="pill-btn blue" href="/students/edit?student_id={{ student.get('student_id', '') }}">Manage Sessions</a>
+            <a class="pill-btn blue" href="/students/sessions?student_id={{ student.get('student_id', '') }}">Manage Sessions</a>
           </div>
 
           <div class="section-title">Student Details</div>
@@ -549,5 +549,284 @@ def render_profile_page(student, can_edit=False, global_navbar=""):
         session_count=len(student.get("sessions", [])),
         latest_session=latest_session,
         age=calculate_age(student.get("dob", "")),
+        global_navbar=global_navbar,
+    )
+
+
+SESSIONS_TEMPLATE = """
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sessions</title>
+    <style>
+      :root {
+        --bg: #eef1f7;
+        --panel: #ffffff;
+        --line: #d8e1ef;
+        --ink: #1a243b;
+        --muted: #6c7a90;
+        --nav-bg: #232f45;
+        --nav-pill: #3a465d;
+        --blue: #2f74e1;
+        --green: #27bb67;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; font-family: Arial, sans-serif; background: var(--bg); color: var(--ink); }
+      .app-shell {
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        min-height: calc(100vh - 52px);
+      }
+      .sidebar {
+        background: var(--nav-bg);
+        color: #fff;
+        padding: 26px 20px;
+        display: flex;
+        flex-direction: column;
+      }
+      .brand { font-size: 44px; font-weight: 800; letter-spacing: 1px; margin: 6px 0 26px; }
+      .nav-link {
+        display: inline-block;
+        padding: 14px 16px;
+        border-radius: 12px;
+        color: #fff;
+        text-decoration: none;
+        font-weight: 700;
+      }
+      .nav-link.active { background: var(--nav-pill); }
+      .content { padding: 24px 42px; }
+      .title { margin: 0; font-size: 48px; font-weight: 800; }
+      .sub { margin-top: 8px; color: var(--muted); font-size: 30px; }
+
+      .toolbar {
+        margin-top: 18px;
+        display: grid;
+        grid-template-columns: auto auto minmax(0, 1fr) auto;
+        gap: 14px;
+        align-items: center;
+      }
+      .radio { display: inline-flex; align-items: center; gap: 8px; font-size: 30px; color: #343c4b; }
+      .search {
+        border: 1px solid var(--line);
+        background: #f9fbff;
+        border-radius: 6px;
+        padding: 12px 16px;
+        font-size: 34px;
+        color: #3b4455;
+      }
+      .save-btn {
+        border: 0;
+        border-radius: 999px;
+        background: var(--green);
+        color: #fff;
+        text-decoration: none;
+        font-weight: 700;
+        padding: 13px 26px;
+        font-size: 30px;
+      }
+      .line { margin: 18px 0; border-top: 1px solid #cfd9ea; }
+
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 16px;
+        margin-bottom: 14px;
+      }
+      .card-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .card-title { margin: 0; font-size: 36px; }
+      .meta { color: var(--muted); font-size: 26px; }
+      .session-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+      .field label {
+        display: block;
+        margin-bottom: 3px;
+        color: var(--muted);
+        font-size: 22px;
+      }
+      .value {
+        min-height: 44px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #f9fbff;
+        padding: 10px 12px;
+        font-size: 32px;
+      }
+      .notes {
+        margin-top: 10px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #fff;
+        padding: 12px;
+        min-height: 110px;
+        white-space: pre-wrap;
+        font-size: 30px;
+      }
+      .empty {
+        border: 1px dashed #b9c6dc;
+        border-radius: 10px;
+        background: #f7faff;
+        padding: 18px;
+        color: #556178;
+      }
+
+      @media (max-width: 980px) {
+        .app-shell { grid-template-columns: 1fr; }
+        .sidebar { display: none; }
+        .content { padding: 16px 14px; }
+        .title { font-size: 34px; }
+        .sub { font-size: 18px; }
+        .toolbar { grid-template-columns: 1fr; }
+        .radio { font-size: 18px; }
+        .search { font-size: 18px; }
+        .save-btn { font-size: 18px; text-align: center; }
+        .card-title { font-size: 24px; }
+        .meta { font-size: 16px; }
+        .session-grid { grid-template-columns: 1fr; }
+        .field label { font-size: 14px; }
+        .value, .notes { font-size: 18px; }
+      }
+    </style>
+  </head>
+  <body>
+    {{ global_navbar|safe }}
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">SEND-C</div>
+        <a class="nav-link" href="/dashboard">DASHBOARD</a>
+        <a class="nav-link active" href="/students">STUDENTS</a>
+      </aside>
+
+      <main class="content">
+        <h1 class="title">Sessions: {{ student.get('full_name', '') }}</h1>
+        <div class="sub">ID: {{ student.get('student_id', '') }}</div>
+
+        <form method="get" action="/students/sessions" class="toolbar">
+          <input type="hidden" name="student_id" value="{{ student.get('student_id', '') }}">
+          <label class="radio"><input type="radio" name="mode" value="date" {% if mode != 'referral' %}checked{% endif %}> Date / Time</label>
+          <label class="radio"><input type="radio" name="mode" value="referral" {% if mode == 'referral' %}checked{% endif %}> Referral Type</label>
+          <input class="search" name="q" placeholder="Search by Date/Time (HH:MM DD.MM.YYYY)" value="{{ query }}">
+          {% if can_edit %}
+          <a class="save-btn" href="/students/profile?student_id={{ student.get('student_id', '') }}">SAVE & BACK TO PROFILE</a>
+          {% else %}
+          <a class="save-btn" href="/students/profile?student_id={{ student.get('student_id', '') }}">BACK TO PROFILE</a>
+          {% endif %}
+        </form>
+
+        <div class="line"></div>
+
+        {% if sessions %}
+          {% for row in sessions %}
+          <section class="card">
+            <div class="card-head">
+              <h2 class="card-title">{{ row.display_date }} - Session Record</h2>
+              <div class="meta">Year Level: {{ row.year_level }}</div>
+            </div>
+            <div class="session-grid">
+              <div class="field">
+                <label>Session Type</label>
+                <div class="value">{{ row.session_type }}</div>
+              </div>
+              <div class="field">
+                <label>Classification</label>
+                <div class="value">{{ row.classification }}</div>
+              </div>
+              <div class="field">
+                <label>Referral Type</label>
+                <div class="value">{{ row.referral_type }}</div>
+              </div>
+            </div>
+            <div class="field" style="margin-top:10px;">
+              <label>Session Notes</label>
+              <div class="notes">{{ row.notes }}</div>
+            </div>
+          </section>
+          {% endfor %}
+        {% else %}
+          <div class="empty">No sessions found for this student with the current search.</div>
+        {% endif %}
+      </main>
+    </div>
+    {{ global_footer|safe }}
+  </body>
+</html>
+"""
+
+
+def _format_session_card_date(session_value):
+    raw = (session_value or "").strip()
+    if not raw:
+        return "Unknown"
+    try:
+        dt = datetime.datetime.fromisoformat(raw[:16].replace(" ", "T"))
+        return dt.strftime("%d.%m.%y")
+    except ValueError:
+        return raw
+
+
+def _session_notes_for_date(student_notes, iso_session):
+    session_day = ""
+    if iso_session:
+        session_day = iso_session[:10]
+
+    if not student_notes:
+        return ""
+
+    lines = [line.strip() for line in str(student_notes).splitlines() if line.strip()]
+    if not session_day:
+        return "\n".join(lines[:2])
+
+    matched = [line for line in lines if f"Date: {session_day}" in line]
+    if matched:
+        return "\n".join(matched[:3])
+    return "\n".join(lines[:2])
+
+
+def render_sessions_page(student, can_edit=False, query="", mode="date", global_navbar=""):
+    raw_sessions = sorted(student.get("sessions", []), reverse=True)
+    rows = []
+    for session_value in raw_sessions:
+        display_time = format_session_time(session_value)
+        row = {
+            "iso": session_value,
+            "display_date": _format_session_card_date(session_value),
+            "display_time": display_time,
+            "session_type": student.get("session_type", "Face-to-Face") or "Face-to-Face",
+            "classification": student.get("classification", "intro meet") or "intro meet",
+            "referral_type": student.get("referral_type", "") or "",
+            "year_level": student.get("year_level", "") or student.get("current_year_level", ""),
+            "notes": _session_notes_for_date(student.get("notes", ""), session_value),
+        }
+        rows.append(row)
+
+    q = (query or "").strip().lower()
+    if q:
+        if mode == "referral":
+            rows = [r for r in rows if q in str(r.get("referral_type", "")).lower()]
+        else:
+            rows = [
+                r
+                for r in rows
+                if q in str(r.get("display_time", "")).lower() or q in str(r.get("display_date", "")).lower()
+            ]
+
+    return render_template_string(
+        SESSIONS_TEMPLATE,
+        student=student,
+        sessions=rows,
+        can_edit=can_edit,
+        query=query,
+        mode=mode,
         global_navbar=global_navbar,
     )
