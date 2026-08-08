@@ -16,11 +16,32 @@ class StudentBackend:
             base_dir = os.path.dirname(sys.executable)
         else:
             base_dir = os.path.dirname(os.path.abspath(__file__))
-        
-        self.db_name = os.path.join(base_dir, "students_secure.db")
+
+        self.db_name = self._resolve_db_path(base_dir)
         self.key = b'S3iCjL6K4w7T8hR9gQ1vB2nN5mY0xZ4aP8oU7iE6wH4='
         self.cipher = Fernet(self.key)
         self._setup()
+
+    def _resolve_db_path(self, base_dir):
+        # 1) Explicit env override: use this for persistent storage mounts.
+        configured_path = (
+            os.getenv("STUDENT_DB_PATH")
+            or os.getenv("DATABASE_PATH")
+            or ""
+        ).strip()
+        if configured_path:
+            parent = os.path.dirname(configured_path)
+            if parent:
+                os.makedirs(parent, exist_ok=True)
+            return configured_path
+
+        # 2) Render default persistent disk convention.
+        render_disk_dir = "/var/data"
+        if os.path.isdir(render_disk_dir):
+            return os.path.join(render_disk_dir, "students_secure.db")
+
+        # 3) Fallback: local project/exe directory.
+        return os.path.join(base_dir, "students_secure.db")
 
     def _setup(self):
         with sqlite3.connect(self.db_name) as conn:
