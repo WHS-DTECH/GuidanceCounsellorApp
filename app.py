@@ -307,16 +307,17 @@ def students_edit():
 
     role = current_role()
     if role != "Counsellor":
-        all_students, data_label, can_edit = students_for_role(role)
-        return render_search_page(
-            students=filter_students(all_students, ""),
-            query="",
-            role=role,
-            data_label=data_label,
-            is_admin=(role == "ADMIN"),
-            can_edit=can_edit,
-            show_sidebar_add_button=(role in {"ADMIN", "Counsellor"}),
-            message="Only Counsellor role can view or edit plaintext student records.",
+        # Non-counsellor users may open a blank form, but cannot view or save live records.
+        if request.method == "POST":
+            return redirect(url_for("students", sync_result="Only Counsellor role can save student records."))
+
+        requested_id = (request.args.get("student_id") or "").strip()
+        if requested_id:
+            return redirect(url_for("students", sync_result="Only Counsellor role can open existing student records."))
+
+        return render_editor_page(
+            build_empty_student(""),
+            message="Blank form view only. Only Counsellor role can save student records.",
             global_navbar=current_global_navbar(),
         )
 
@@ -402,12 +403,9 @@ def student_sessions_new():
         return redirect(url_for("index"))
 
     role = current_role()
-    if role != "Counsellor":
-        return redirect(url_for("students", sync_result="Only Counsellor role can open plaintext session details."))
-
     return render_sessions_page(
         build_empty_student(""),
-        can_edit=True,
+        can_edit=(role == "Counsellor"),
         query="",
         mode="date",
         global_navbar=current_global_navbar(),
