@@ -32,7 +32,7 @@ EDITOR_TEMPLATE = """
       .app-shell {
         display: grid;
         grid-template-columns: 300px 1fr;
-        min-height: calc(100vh - 52px);
+        min-height: calc(100vh - 52px - 1.5cm);
       }
 
       .sidebar {
@@ -596,24 +596,24 @@ SESSIONS_TEMPLATE = """
         font-weight: 700;
       }
       .nav-link.active { background: var(--nav-pill); }
-      .content { padding: 24px 42px; }
-      .title { margin: 0; font-size: 48px; font-weight: 800; }
-      .sub { margin-top: 8px; color: var(--muted); font-size: 30px; }
+      .content { padding: 18px 28px; }
+      .title { margin: 0; font-size: 24px; font-weight: 800; }
+      .sub { margin-top: 4px; color: var(--muted); font-size: 14px; }
 
       .toolbar {
-        margin-top: 18px;
+        margin-top: 14px;
         display: grid;
         grid-template-columns: auto auto minmax(0, 1fr) auto;
-        gap: 14px;
+        gap: 10px;
         align-items: center;
       }
-      .radio { display: inline-flex; align-items: center; gap: 8px; font-size: 30px; color: #343c4b; }
+      .radio { display: inline-flex; align-items: center; gap: 8px; font-size: 16px; color: #343c4b; }
       .search {
         border: 1px solid var(--line);
         background: #f9fbff;
         border-radius: 6px;
-        padding: 12px 16px;
-        font-size: 34px;
+        padding: 10px 12px;
+        font-size: 16px;
         color: #3b4455;
       }
       .save-btn {
@@ -623,17 +623,17 @@ SESSIONS_TEMPLATE = """
         color: #fff;
         text-decoration: none;
         font-weight: 700;
-        padding: 13px 26px;
-        font-size: 30px;
+        padding: 10px 18px;
+        font-size: 16px;
       }
-      .line { margin: 18px 0; border-top: 1px solid #cfd9ea; }
+      .line { margin: 14px 0; border-top: 1px solid #cfd9ea; }
 
       .card {
         background: var(--panel);
         border: 1px solid var(--line);
         border-radius: 14px;
-        padding: 16px;
-        margin-bottom: 14px;
+        padding: 14px;
+        margin-bottom: 12px;
       }
       .card-head {
         display: flex;
@@ -642,8 +642,8 @@ SESSIONS_TEMPLATE = """
         gap: 10px;
         margin-bottom: 10px;
       }
-      .card-title { margin: 0; font-size: 36px; }
-      .meta { color: var(--muted); font-size: 26px; }
+      .card-title { margin: 0; font-size: 18px; }
+      .meta { color: var(--muted); font-size: 14px; }
       .session-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -653,25 +653,25 @@ SESSIONS_TEMPLATE = """
         display: block;
         margin-bottom: 3px;
         color: var(--muted);
-        font-size: 22px;
+        font-size: 13px;
       }
       .value {
-        min-height: 44px;
+        min-height: 38px;
         border: 1px solid var(--line);
         border-radius: 6px;
         background: #f9fbff;
-        padding: 10px 12px;
-        font-size: 32px;
+        padding: 8px 10px;
+        font-size: 16px;
       }
       .notes {
         margin-top: 10px;
         border: 1px solid var(--line);
         border-radius: 6px;
         background: #fff;
-        padding: 12px;
-        min-height: 110px;
+        padding: 10px;
+        min-height: 84px;
         white-space: pre-wrap;
-        font-size: 30px;
+        font-size: 16px;
       }
       .empty {
         border: 1px dashed #b9c6dc;
@@ -685,7 +685,7 @@ SESSIONS_TEMPLATE = """
         .app-shell { grid-template-columns: 1fr; }
         .sidebar { display: none; }
         .content { padding: 16px 14px; }
-        .title { font-size: 34px; }
+        .title { font-size: 24px; }
         .sub { font-size: 18px; }
         .toolbar { grid-template-columns: 1fr; }
         .radio { font-size: 18px; }
