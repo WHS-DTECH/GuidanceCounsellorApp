@@ -3,7 +3,7 @@ import time
 import hashlib
 from flask import Flask, request, redirect, session, url_for, render_template_string
 
-from database import StudentBackend
+from database import StudentBackend, ADMIN_USERNAME
 from dashboard import DASHBOARD_WEB_TEMPLATE, build_dashboard_context
 from login import render_login_page, render_register_page
 from search import filter_students, render_search_page
@@ -437,7 +437,12 @@ def user_roles():
         return redirect(url_for("index"))
 
     role = current_role()
-    if role != "ADMIN":
+    user_email = (current_user() or "").strip().lower()
+    recovery_email = (ADMIN_USERNAME or "").strip().lower()
+    is_recovery_manager = bool(user_email and user_email == recovery_email)
+    can_manage_roles = role == "ADMIN" or is_recovery_manager
+
+    if not can_manage_roles:
         return render_template_string(
             """
             <!doctype html>
@@ -456,6 +461,8 @@ def user_roles():
         )
 
     message = None
+    if is_recovery_manager and role != "ADMIN":
+        message = "Recovery access enabled for designated account. You can restore your ADMIN role below."
     if request.method == "POST":
         username = (request.form.get("username") or "").strip()
         selected_role = (request.form.get("role") or "Counsellor").strip()
