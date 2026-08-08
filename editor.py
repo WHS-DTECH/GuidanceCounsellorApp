@@ -60,7 +60,7 @@ EDITOR_TEMPLATE = """
       .nav-link.active { background: var(--sidebar-pill); opacity: 1; }
 
       .content {
-        padding: 28px 42px;
+        padding: 18px 26px;
       }
 
       .profile-grid {
@@ -75,14 +75,14 @@ EDITOR_TEMPLATE = """
       .span-2 { grid-column: span 2; }
 
       .page-title {
-        margin: 2px 0 20px;
-        font-size: 48px;
+        margin: 2px 0 10px;
+        font-size: 28px;
         font-weight: 800;
         letter-spacing: 0.2px;
       }
       .section-title {
-        margin: 20px 0 8px;
-        font-size: 38px;
+        margin: 12px 0 6px;
+        font-size: 22px;
         font-weight: 800;
       }
 
@@ -104,15 +104,15 @@ EDITOR_TEMPLATE = """
         background: #f9fbff;
         color: #3b4455;
         border-radius: 6px;
-        padding: 12px 16px;
-        font-size: 16px;
+        padding: 10px 12px;
+        font-size: 14px;
       }
       input[disabled] {
         color: #a2adbd;
         background: #f2f5fa;
       }
       textarea {
-        min-height: 150px;
+        min-height: 90px;
         resize: vertical;
       }
 
@@ -127,15 +127,15 @@ EDITOR_TEMPLATE = """
         display: flex;
         justify-content: flex-end;
         gap: 14px;
-        margin-top: 20px;
+        margin-top: 12px;
       }
       .btn {
         text-decoration: none;
         display: inline-block;
         border-radius: 999px;
-        padding: 11px 22px;
+        padding: 9px 16px;
         font-weight: 700;
-        font-size: 30px;
+        font-size: 14px;
         border: 1px solid transparent;
       }
       .btn-cancel {
@@ -148,8 +148,8 @@ EDITOR_TEMPLATE = """
         color: #ffffff;
       }
 
-      .msg { color: #b91c1c; margin-bottom: 8px; }
-      .toolbar { margin-bottom: 8px; }
+      .msg { color: #b91c1c; margin-bottom: 6px; font-size: 14px; }
+      .toolbar { margin-bottom: 6px; font-size: 14px; }
       .toolbar a { margin-right: 8px; color: #3b5d8b; }
 
       @media (max-width: 980px) {
@@ -158,8 +158,8 @@ EDITOR_TEMPLATE = """
         .content { padding: 18px 14px; }
       }
       @media (max-width: 760px) {
-        .page-title { font-size: 34px; }
-        .section-title { font-size: 26px; }
+        .page-title { font-size: 24px; }
+        .section-title { font-size: 20px; }
         .span-8, .span-6, .span-4, .span-2 { grid-column: span 12; }
         .actions { justify-content: stretch; }
         .btn { width: 100%; text-align: center; }
