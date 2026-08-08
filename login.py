@@ -42,6 +42,7 @@ LOGIN_TEMPLATE = """
         <div class="link"><a href="/register">Create account</a></div>
       {% endif %}
     </div>
+    {{ global_footer|safe }}
   </body>
 </html>
 """
@@ -63,6 +64,7 @@ REGISTER_TEMPLATE = """
     </style>
   </head>
   <body>
+    {{ global_navbar|safe }}
     <div class="page">
       <h1>Create account</h1>
       <form method="post" action="/register">
@@ -73,6 +75,7 @@ REGISTER_TEMPLATE = """
       {% if message %}<div class="msg">{{ message }}</div>{% endif %}
       <p><a href="/">Back to login</a></p>
     </div>
+    {{ global_footer|safe }}
   </body>
 </html>
 """

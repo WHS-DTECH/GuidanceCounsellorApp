@@ -151,6 +151,7 @@ SEARCH_TEMPLATE = """
         </div>
       </main>
     </div>
+    {{ global_footer|safe }}
   </body>
 </html>
 """

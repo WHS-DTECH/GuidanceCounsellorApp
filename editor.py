@@ -257,6 +257,7 @@ EDITOR_TEMPLATE = """
         </form>
       </main>
     </div>
+    {{ global_footer|safe }}
   </body>
 </html>
 """

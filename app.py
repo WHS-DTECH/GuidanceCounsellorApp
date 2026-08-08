@@ -9,6 +9,7 @@ from search import filter_students, render_search_page
 from editor import build_empty_student, normalize_student_payload, render_editor_page
 from google_auth import build_google_auth_url, exchange_code_for_token, fetch_google_user_info
 from navbar import build_global_navbar
+from footer import build_global_footer
 from spreadsheet_sync import sync_spreadsheet_folder
 
 
@@ -47,6 +48,15 @@ def login_required():
 def current_global_navbar():
     role = current_role()
     return build_global_navbar(role)
+
+
+def current_global_footer():
+    return build_global_footer()
+
+
+@app.context_processor
+def inject_global_layout_bits():
+    return {"global_footer": current_global_footer()}
 
 
 def students_for_role(role):
@@ -296,6 +306,7 @@ def infrastructure():
                 <li>{{ student.get('student_id') }} - {{ student.get('full_name') }}</li>
               {% endfor %}
             </ul>
+                        {{ global_footer|safe }}
           </body>
         </html>
         """,
@@ -303,6 +314,7 @@ def infrastructure():
         data_label=data_label,
         students=students,
         global_navbar=current_global_navbar(),
+                global_footer=current_global_footer(),
     )
 
 
@@ -322,10 +334,12 @@ def user_roles():
                 <h1>Access denied</h1>
                 <p>This page is restricted to administrators.</p>
                 <p><a href="/dashboard">Back to dashboard</a></p>
+                                {{ global_footer|safe }}
               </body>
             </html>
                         """,
                         global_navbar=current_global_navbar(),
+                        global_footer=current_global_footer(),
         )
 
     message = None
@@ -369,12 +383,14 @@ def user_roles():
                 <li>{{ user.username }} - {{ user.role }}</li>
               {% endfor %}
             </ul>
+                        {{ global_footer|safe }}
           </body>
         </html>
         """,
         message=message,
         users=users,
         global_navbar=current_global_navbar(),
+                global_footer=current_global_footer(),
     )
 
 
