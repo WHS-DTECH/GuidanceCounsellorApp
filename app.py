@@ -211,15 +211,32 @@ def dashboard():
         return redirect(url_for("index"))
 
     role = current_role()
+    user_email = (current_user() or "").strip().lower()
+    recovery_email = (ADMIN_USERNAME or "").strip().lower()
     students, data_label, _ = students_for_role(role)
     context = build_dashboard_context(
         user=current_user(),
         role=role,
         data_label=data_label,
         students=students,
+        can_restore_admin=(role != "ADMIN" and user_email == recovery_email),
     )
     context["global_navbar"] = current_global_navbar()
     return render_template_string(DASHBOARD_WEB_TEMPLATE, **context)
+
+
+@app.route("/account/restore-admin", methods=["POST"])
+def account_restore_admin():
+    if not login_required():
+        return redirect(url_for("index"))
+
+    user_email = (current_user() or "").strip()
+    if user_email.lower() != (ADMIN_USERNAME or "").strip().lower():
+        return redirect(url_for("dashboard"))
+
+    backend.set_user_role(user_email, "ADMIN")
+    session["role"] = backend.get_user_role(user_email)
+    return redirect(url_for("dashboard"))
 
 
 @app.route("/students")

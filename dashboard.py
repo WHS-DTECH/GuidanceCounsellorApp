@@ -214,6 +214,11 @@ DASHBOARD_WEB_TEMPLATE = """
         <h1 class="title">Overview & Analytics</h1>
         <p class="meta">Welcome, {{ user }}.</p>
         <p class="meta">Role: {{ role }} | Viewing {{ data_label }}.</p>
+        {% if can_restore_admin %}
+          <form method="post" action="/account/restore-admin" style="margin: 6px 0 0;">
+            <button type="submit" style="border:0; border-radius:8px; background:#1f2937; color:#fff; padding:7px 11px; cursor:pointer; font-size:13px;">Restore ADMIN Access</button>
+          </form>
+        {% endif %}
         <p class="logout-line"><a href="/logout">Logout</a></p>
 
         <div class="stats">
@@ -317,7 +322,7 @@ def _timeline_last_12_months(students):
     return labels, values
 
 
-def build_dashboard_context(user, role, data_label, students):
+def build_dashboard_context(user, role, data_label, students, can_restore_admin=False):
     total_students = len(students)
     total_sessions = sum(len(s.get("sessions", [])) for s in students)
 
@@ -351,6 +356,7 @@ def build_dashboard_context(user, role, data_label, students):
         "user": user,
         "role": role,
         "is_admin": role == "ADMIN",
+        "can_restore_admin": can_restore_admin,
         "data_label": data_label,
         "global_navbar": "",
         "total_students": total_students,

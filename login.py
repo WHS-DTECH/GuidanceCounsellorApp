@@ -17,6 +17,30 @@ LOGIN_TEMPLATE = """
       .msg { color: #b91c1c; margin-top: 8px; }
       .link { margin-top: 12px; }
       .admin-btn { display: inline-block; margin-top: 10px; padding: 8px 12px; border-radius: 8px; background: #1f2937; color: white; text-decoration: none; }
+      .google-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+        color: #111827;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        background: #ffffff;
+        padding: 9px 12px;
+        font-weight: 600;
+      }
+      .google-btn:hover { background: #f9fafb; }
+      .google-icon {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: inline-grid;
+        place-items: center;
+        font-size: 12px;
+        font-weight: 700;
+        color: #ffffff;
+        background: conic-gradient(#4285F4 0 25%, #34A853 25% 50%, #FBBC05 50% 75%, #EA4335 75% 100%);
+      }
     </style>
   </head>
   <body>
@@ -37,7 +61,12 @@ LOGIN_TEMPLATE = """
         </form>
         {% if message %}<div class="msg">{{ message }}</div>{% endif %}
         {% if google_enabled %}
-          <div class="link"><a href="/auth/google/login">Sign in with Google</a></div>
+          <div class="link">
+            <a class="google-btn" href="/auth/google/login">
+              <span class="google-icon">G</span>
+              <span>Sign in with Google</span>
+            </a>
+          </div>
         {% endif %}
         <div class="link"><a href="/register">Create account</a></div>
       {% endif %}
