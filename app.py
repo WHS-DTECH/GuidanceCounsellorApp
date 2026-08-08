@@ -341,7 +341,7 @@ def students_edit():
         return render_editor_page(student, global_navbar=current_global_navbar())
 
     return render_editor_page(
-        build_empty_student(f"ST-{int(time.time())}"),
+        build_empty_student(""),
         global_navbar=current_global_navbar(),
     )
 
