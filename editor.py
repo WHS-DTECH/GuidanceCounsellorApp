@@ -596,24 +596,25 @@ SESSIONS_TEMPLATE = """
         font-weight: 700;
       }
       .nav-link.active { background: var(--nav-pill); }
-      .content { padding: 18px 28px; }
-      .title { margin: 0; font-size: 24px; font-weight: 800; }
-      .sub { margin-top: 4px; color: var(--muted); font-size: 14px; }
+      .content { padding: 22px 28px; }
+      .canvas { max-width: 980px; }
+      .title { margin: 0; font-size: 38px; font-weight: 800; letter-spacing: 0.2px; }
+      .sub { margin-top: 6px; color: var(--muted); font-size: 15px; }
 
       .toolbar {
-        margin-top: 14px;
+        margin-top: 18px;
         display: grid;
         grid-template-columns: auto auto minmax(0, 1fr) auto;
-        gap: 10px;
+        gap: 12px;
         align-items: center;
       }
-      .radio { display: inline-flex; align-items: center; gap: 8px; font-size: 16px; color: #343c4b; }
+      .radio { display: inline-flex; align-items: center; gap: 8px; font-size: 17px; color: #343c4b; }
       .search {
         border: 1px solid var(--line);
         background: #f9fbff;
         border-radius: 6px;
-        padding: 10px 12px;
-        font-size: 16px;
+        padding: 11px 14px;
+        font-size: 17px;
         color: #3b4455;
       }
       .save-btn {
@@ -623,17 +624,17 @@ SESSIONS_TEMPLATE = """
         color: #fff;
         text-decoration: none;
         font-weight: 700;
-        padding: 10px 18px;
-        font-size: 16px;
+        padding: 11px 20px;
+        font-size: 17px;
       }
-      .line { margin: 14px 0; border-top: 1px solid #cfd9ea; }
+      .line { margin: 16px 0; border-top: 1px solid #cfd9ea; }
 
       .card {
         background: var(--panel);
         border: 1px solid var(--line);
-        border-radius: 14px;
-        padding: 14px;
-        margin-bottom: 12px;
+        border-radius: 16px;
+        padding: 18px;
+        margin-bottom: 14px;
       }
       .card-head {
         display: flex;
@@ -642,19 +643,20 @@ SESSIONS_TEMPLATE = """
         gap: 10px;
         margin-bottom: 10px;
       }
-      .card-title { margin: 0; font-size: 18px; }
+      .card-title { margin: 0; font-size: 40px; }
       .card-meta {
         display: flex;
         align-items: center;
         gap: 16px;
       }
-      .meta { color: var(--muted); font-size: 14px; }
+      .meta { color: var(--muted); font-size: 31px; }
       .color-link {
         color: var(--blue);
         text-decoration: none;
         font-weight: 700;
-        font-size: 14px;
+        font-size: 31px;
       }
+      .card-divider { border-top: 1px solid #e4e9f3; margin: 12px 0; }
       .session-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -664,7 +666,7 @@ SESSIONS_TEMPLATE = """
         display: block;
         margin-bottom: 3px;
         color: var(--muted);
-        font-size: 13px;
+        font-size: 24px;
       }
       .value-row {
         display: grid;
@@ -673,18 +675,18 @@ SESSIONS_TEMPLATE = """
         gap: 10px;
       }
       .value {
-        min-height: 38px;
+        min-height: 46px;
         border: 1px solid var(--line);
         border-radius: 6px;
         background: #f9fbff;
-        padding: 8px 10px;
-        font-size: 16px;
+        padding: 9px 12px;
+        font-size: 37px;
       }
       .select-action {
         color: var(--blue);
         text-decoration: none;
         font-weight: 700;
-        font-size: 14px;
+        font-size: 30px;
       }
       .notes {
         margin-top: 10px;
@@ -692,9 +694,9 @@ SESSIONS_TEMPLATE = """
         border-radius: 6px;
         background: #fff;
         padding: 10px;
-        min-height: 84px;
+        min-height: 100px;
         white-space: pre-wrap;
-        font-size: 16px;
+        font-size: 34px;
       }
       .empty {
         border: 1px dashed #b9c6dc;
@@ -708,6 +710,7 @@ SESSIONS_TEMPLATE = """
         .app-shell { grid-template-columns: 1fr; }
         .sidebar { display: none; }
         .content { padding: 16px 14px; }
+        .canvas { max-width: 100%; }
         .title { font-size: 24px; }
         .sub { font-size: 18px; }
         .toolbar { grid-template-columns: 1fr; }
@@ -736,6 +739,7 @@ SESSIONS_TEMPLATE = """
       </aside>
 
       <main class="content">
+        <div class="canvas">
         <h1 class="title">Sessions: {{ student.get('full_name', '') }}</h1>
         <div class="sub">ID: {{ student.get('student_id', '') }}</div>
 
@@ -763,6 +767,7 @@ SESSIONS_TEMPLATE = """
                 <div class="meta">Year Level: {{ row.year_level }}</div>
               </div>
             </div>
+            <div class="card-divider"></div>
             <div class="session-grid">
               <div class="field">
                 <label>Session Type</label>
@@ -795,6 +800,7 @@ SESSIONS_TEMPLATE = """
         {% else %}
           <div class="empty">No sessions found for this student with the current search.</div>
         {% endif %}
+        </div>
       </main>
     </div>
     {{ global_footer|safe }}
