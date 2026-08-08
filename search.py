@@ -85,7 +85,7 @@ SEARCH_TEMPLATE = """
         <a class="nav-link" href="/dashboard">DASHBOARD</a>
         <a class="nav-link active" href="/students">STUDENTS</a>
         <div class="sidebar-footer">
-          {% if can_edit %}
+          {% if show_sidebar_add_button %}
           <a class="add-student-btn" href="/students/edit">ADD STUDENT</a>
           {% endif %}
         </div>
@@ -182,6 +182,7 @@ def render_search_page(
   data_label,
   is_admin=False,
   can_edit=True,
+  show_sidebar_add_button=False,
   message=None,
   global_navbar="",
   db_path="",
@@ -195,6 +196,7 @@ def render_search_page(
         data_label=data_label,
         is_admin=is_admin,
         can_edit=can_edit,
+        show_sidebar_add_button=show_sidebar_add_button,
         message=message,
     global_navbar=global_navbar,
     db_path=db_path,

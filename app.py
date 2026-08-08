@@ -274,6 +274,7 @@ def students():
         data_label=data_label,
         is_admin=(role == "ADMIN"),
         can_edit=can_edit,
+        show_sidebar_add_button=(role in {"ADMIN", "Counsellor"}),
         message=message,
         global_navbar=current_global_navbar(),
         db_path=db_path,
@@ -314,6 +315,7 @@ def students_edit():
             data_label=data_label,
             is_admin=(role == "ADMIN"),
             can_edit=can_edit,
+            show_sidebar_add_button=(role in {"ADMIN", "Counsellor"}),
             message="Only Counsellor role can view or edit plaintext student records.",
             global_navbar=current_global_navbar(),
         )
