@@ -129,7 +129,7 @@ SEARCH_TEMPLATE = """
               {% for s in students %}
               <tr>
                 <td>{{ s.get('student_id', '') }}</td>
-                <td>{{ s.get('full_name', '') }}</td>
+                <td><a href="/students/profile?student_id={{ s.get('student_id', '') }}">{{ s.get('full_name', '') }}</a></td>
                 <td>{{ s.get('preferred_name', '') }}</td>
                 <td>{{ s.get('gender', '') }}</td>
                 <td>{{ s.get('ethnicity', '') }}</td>

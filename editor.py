@@ -355,3 +355,199 @@ def render_editor_page(student, message=None, global_navbar=""):
         page_title=page_title,
     global_navbar=global_navbar,
     )
+
+
+PROFILE_TEMPLATE = """
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Student Profile</title>
+    <style>
+      :root {
+        --bg: #eef1f7;
+        --panel: #ffffff;
+        --line: #d8e1ef;
+        --ink: #1a243b;
+        --muted: #6c7a90;
+        --nav-bg: #232f45;
+        --nav-pill: #3a465d;
+        --blue: #2f74e1;
+        --green: #27bb67;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; font-family: Arial, sans-serif; background: var(--bg); color: var(--ink); }
+      .app-shell {
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        min-height: calc(100vh - 52px);
+      }
+      .sidebar {
+        background: var(--nav-bg);
+        color: #fff;
+        padding: 26px 20px;
+        display: flex;
+        flex-direction: column;
+      }
+      .brand { font-size: 44px; font-weight: 800; letter-spacing: 1px; margin: 6px 0 26px; }
+      .nav-link {
+        display: inline-block;
+        padding: 14px 16px;
+        border-radius: 12px;
+        color: #fff;
+        text-decoration: none;
+        font-weight: 700;
+      }
+      .nav-link.active { background: var(--nav-pill); }
+      .content { padding: 24px 22px; }
+      .panel {
+        background: var(--panel);
+        border-radius: 8px;
+        padding: 16px;
+        border: 1px solid #e6ecf6;
+      }
+      .title-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+      .title-row h1 { margin: 0; font-size: 36px; }
+      .delete-link { color: #d44a4a; text-decoration: none; font-size: 13px; }
+      .section-title { margin: 18px 0 8px; font-size: 17px; font-weight: 700; }
+      .tracking {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        gap: 10px;
+        align-items: center;
+        padding: 10px;
+        border: 1px solid var(--line);
+        background: #f3f7fe;
+        border-radius: 6px;
+      }
+      .tracking small { color: var(--muted); display: block; margin-bottom: 4px; }
+      .pill-btn {
+        border: 0;
+        color: #fff;
+        font-weight: 700;
+        border-radius: 999px;
+        padding: 8px 14px;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 13px;
+      }
+      .pill-btn.green { background: var(--green); }
+      .pill-btn.blue { background: var(--blue); }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .span-12 { grid-column: span 12; }
+      .span-6 { grid-column: span 6; }
+      .span-4 { grid-column: span 4; }
+      .span-3 { grid-column: span 3; }
+      .field label {
+        display: block;
+        font-size: 12px;
+        color: var(--muted);
+        margin-bottom: 2px;
+      }
+      .value {
+        min-height: 34px;
+        border: 1px solid var(--line);
+        background: #f9fbff;
+        border-radius: 4px;
+        padding: 8px;
+        font-size: 14px;
+      }
+      .toolbar { margin-top: 14px; }
+      .toolbar a { color: #3b5d8b; margin-right: 8px; }
+      @media (max-width: 980px) {
+        .app-shell { grid-template-columns: 1fr; }
+        .sidebar { display: none; }
+      }
+      @media (max-width: 760px) {
+        .span-6, .span-4, .span-3 { grid-column: span 12; }
+        .tracking { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    {{ global_navbar|safe }}
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">SEND-C</div>
+        <a class="nav-link" href="/dashboard">DASHBOARD</a>
+        <a class="nav-link active" href="/students">STUDENTS</a>
+      </aside>
+
+      <main class="content">
+        <div class="panel">
+          <div class="title-row">
+            <h1>Edit Student Profile</h1>
+            {% if can_edit %}
+            <form method="post" action="/students/delete" onsubmit="return confirm('Delete this student?');">
+              <input type="hidden" name="student_id" value="{{ student.get('student_id', '') }}">
+              <button type="submit" style="border:0; background:none; color:#d44a4a; cursor:pointer; font-size:13px;">Delete Profile</button>
+            </form>
+            {% endif %}
+          </div>
+
+          <div class="section-title">Session Tracking</div>
+          <div class="tracking">
+            <div>
+              <small>Total Sessions</small>
+              <div><strong>{{ session_count }}</strong> {% if latest_session %}<span style="margin-left:10px; color:var(--muted);">Latest: {{ latest_session }}</span>{% endif %}</div>
+            </div>
+            <a class="pill-btn green" href="/students/edit?student_id={{ student.get('student_id', '') }}">Add Session</a>
+            <a class="pill-btn blue" href="/students/edit?student_id={{ student.get('student_id', '') }}">Manage Sessions</a>
+          </div>
+
+          <div class="section-title">Student Details</div>
+          <div class="grid">
+            <div class="field span-6"><label>Student ID</label><div class="value">{{ student.get('student_id', '') }}</div></div>
+            <div class="field span-6"><label>Current Year Level</label><div class="value">{{ student.get('current_year_level', student.get('year_level', '')) }}</div></div>
+
+            <div class="field span-6"><label>Full Name</label><div class="value">{{ student.get('full_name', '') }}</div></div>
+            <div class="field span-6"><label>Preferred Name</label><div class="value">{{ student.get('preferred_name', '') }}</div></div>
+
+            <div class="field span-4"><label>Date of Birth</label><div class="value">{{ student.get('dob', '') }}</div></div>
+            <div class="field span-3"><label>Age</label><div class="value">{{ age }}</div></div>
+            <div class="field span-3"><label>Gender</label><div class="value">{{ student.get('gender', '') }}</div></div>
+            <div class="field span-2"><label>Preferred Pronoun</label><div class="value">{{ student.get('preferred_pronoun', '') }}</div></div>
+
+            <div class="field span-4"><label>Ethnicity</label><div class="value">{{ student.get('ethnicity', '') }}</div></div>
+            <div class="field span-4"><label>Referral</label><div class="value">{{ student.get('referral_type', '') }}</div></div>
+            <div class="field span-4"><label>Classification</label><div class="value">{{ student.get('classification', '') }}</div></div>
+          </div>
+
+          <div class="section-title">Contact & Relations</div>
+          <div class="grid">
+            <div class="field span-6"><label>Address</label><div class="value">{{ student.get('address', '') }}</div></div>
+            <div class="field span-3"><label>Phone</label><div class="value">{{ student.get('phone', '') }}</div></div>
+            <div class="field span-3"><label>Care Giver</label><div class="value">{{ student.get('care_giver', '') }}</div></div>
+          </div>
+
+          <div class="toolbar">
+            <a href="/students">Back to Students</a> | <a href="/students/edit?student_id={{ student.get('student_id', '') }}">Open Full Editor</a> | <a href="/logout">Logout</a>
+          </div>
+        </div>
+      </main>
+    </div>
+    {{ global_footer|safe }}
+  </body>
+</html>
+"""
+
+
+def render_profile_page(student, can_edit=False, global_navbar=""):
+    latest_session = ""
+    if student.get("sessions"):
+        latest_session = format_session_time(sorted(student.get("sessions", []))[-1])
+
+    return render_template_string(
+        PROFILE_TEMPLATE,
+        student=student,
+        can_edit=can_edit,
+        session_count=len(student.get("sessions", [])),
+        latest_session=latest_session,
+        age=calculate_age(student.get("dob", "")),
+        global_navbar=global_navbar,
+    )
