@@ -577,7 +577,7 @@ SESSIONS_TEMPLATE = """
       .app-shell {
         display: grid;
         grid-template-columns: 300px 1fr;
-        min-height: calc(100vh - 52px);
+        min-height: calc(100vh - 52px - 1.5cm);
       }
       .sidebar {
         background: var(--nav-bg);
@@ -596,25 +596,25 @@ SESSIONS_TEMPLATE = """
         font-weight: 700;
       }
       .nav-link.active { background: var(--nav-pill); }
-      .content { padding: 22px 28px; }
-      .canvas { max-width: 980px; }
-      .title { margin: 0; font-size: 38px; font-weight: 800; letter-spacing: 0.2px; }
-      .sub { margin-top: 6px; color: var(--muted); font-size: 15px; }
+      .content { padding: 16px 22px; }
+      .canvas { max-width: 930px; }
+      .title { margin: 0; font-size: 28px; font-weight: 800; letter-spacing: 0.1px; }
+      .sub { margin-top: 4px; color: var(--muted); font-size: 13px; }
 
       .toolbar {
-        margin-top: 18px;
+        margin-top: 12px;
         display: grid;
         grid-template-columns: auto auto minmax(0, 1fr) auto;
-        gap: 12px;
+        gap: 10px;
         align-items: center;
       }
-      .radio { display: inline-flex; align-items: center; gap: 8px; font-size: 17px; color: #343c4b; }
+      .radio { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: #343c4b; }
       .search {
         border: 1px solid var(--line);
         background: #f9fbff;
         border-radius: 6px;
-        padding: 11px 14px;
-        font-size: 17px;
+        padding: 9px 12px;
+        font-size: 15px;
         color: #3b4455;
       }
       .save-btn {
@@ -624,17 +624,17 @@ SESSIONS_TEMPLATE = """
         color: #fff;
         text-decoration: none;
         font-weight: 700;
-        padding: 11px 20px;
-        font-size: 17px;
+        padding: 10px 16px;
+        font-size: 15px;
       }
-      .line { margin: 16px 0; border-top: 1px solid #cfd9ea; }
+      .line { margin: 12px 0; border-top: 1px solid #cfd9ea; }
 
       .card {
         background: var(--panel);
         border: 1px solid var(--line);
-        border-radius: 16px;
-        padding: 18px;
-        margin-bottom: 14px;
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 10px;
       }
       .card-head {
         display: flex;
@@ -643,20 +643,20 @@ SESSIONS_TEMPLATE = """
         gap: 10px;
         margin-bottom: 10px;
       }
-      .card-title { margin: 0; font-size: 40px; }
+      .card-title { margin: 0; font-size: 18px; }
       .card-meta {
         display: flex;
         align-items: center;
         gap: 16px;
       }
-      .meta { color: var(--muted); font-size: 31px; }
+      .meta { color: var(--muted); font-size: 13px; }
       .color-link {
         color: var(--blue);
         text-decoration: none;
         font-weight: 700;
-        font-size: 31px;
+        font-size: 13px;
       }
-      .card-divider { border-top: 1px solid #e4e9f3; margin: 12px 0; }
+      .card-divider { border-top: 1px solid #e4e9f3; margin: 8px 0; }
       .session-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -666,7 +666,7 @@ SESSIONS_TEMPLATE = """
         display: block;
         margin-bottom: 3px;
         color: var(--muted);
-        font-size: 24px;
+        font-size: 12px;
       }
       .value-row {
         display: grid;
@@ -675,28 +675,31 @@ SESSIONS_TEMPLATE = """
         gap: 10px;
       }
       .value {
-        min-height: 46px;
+        min-height: 34px;
         border: 1px solid var(--line);
         border-radius: 6px;
         background: #f9fbff;
-        padding: 9px 12px;
-        font-size: 37px;
+        padding: 7px 10px;
+        font-size: 14px;
       }
       .select-action {
         color: var(--blue);
         text-decoration: none;
         font-weight: 700;
-        font-size: 30px;
+        font-size: 13px;
       }
       .notes {
         margin-top: 10px;
         border: 1px solid var(--line);
         border-radius: 6px;
         background: #fff;
-        padding: 10px;
-        min-height: 100px;
+        padding: 8px 10px;
+        min-height: 56px;
+        max-height: 56px;
+        overflow: hidden;
         white-space: pre-wrap;
-        font-size: 34px;
+        font-size: 14px;
+        line-height: 1.3;
       }
       .empty {
         border: 1px dashed #b9c6dc;
